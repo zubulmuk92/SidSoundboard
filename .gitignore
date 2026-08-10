@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Build and Distribution
+build/
+dist/
+*.spec
+
+# Audio Files
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.m4a
+audio_cache/
+cache/
+
+# OS Files
+.DS_Store
+Thumbs.db

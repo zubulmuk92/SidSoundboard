@@ -1,0 +1,6 @@
+miniaudio
+keyboard
+pystray
+Pillow
+yt-dlp
+static-ffmpeg
