@@ -279,27 +279,30 @@ class AppGUI(ctk.CTk):
         dialog.transient(self)
         dialog.grab_set()
         
-        lbl = ctk.CTkLabel(dialog, text="Appuyez sur une touche...", font=ctk.CTkFont(size=16))
-        lbl.pack(expand=True)
+        lbl = ctk.CTkLabel(dialog, text="Appuyez sur une touche ou combinaison...", font=ctk.CTkFont(size=14))
+        lbl.pack(expand=True, pady=10)
         
-        detected = ["Aucun"]
-        def on_key(e):
-            detected[0] = e.name
-            lbl.configure(text=f"Touche : {e.name}")
+        btn_cancel = ctk.CTkButton(dialog, text="Annuler", fg_color="#E11D48", hover_color="#BE123C", command=dialog.destroy)
+        btn_cancel.pack(pady=10)
+        
+        import threading
+        def capture_hotkey():
+            import keyboard
+            hk = keyboard.read_hotkey(suppress=False)
+            self.after(0, lambda: apply_hotkey(hk))
             
-        hook = keyboard.on_press(on_key)
-        
-        def valider():
-            keyboard.unhook(hook)
+        def apply_hotkey(hk):
+            if not dialog.winfo_exists():
+                return
             sound = next((s for s in self.config["sounds"] if s["id"] == sound_id), None)
             if sound:
-                sound["hotkey"] = detected[0]
+                sound["hotkey"] = hk
                 config_manager.save_config(self.config)
                 self.hotkey_manager.load_hotkeys(self.config)
                 self.update_sound_list()
             dialog.destroy()
             
-        ctk.CTkButton(dialog, text="✔ Valider", command=valider).pack(pady=10)
+        threading.Thread(target=capture_hotkey, daemon=True).start()
 
     def apply_audio(self, sound_id, vol, spd, status_indicator):
         vol = int(vol)
@@ -357,8 +360,8 @@ class AppGUI(ctk.CTk):
         self.update_sound_list()
 
     def play_sound(self, sound):
-        if self.config.get("single_mode"):
-            self.audio_manager.stop_all()
+        self.audio_manager.stop_all()
+        
         self.audio_manager.play_sound(
             filepath=sound.get("cached_file") or sound.get("file"),
             name=sound["name"],

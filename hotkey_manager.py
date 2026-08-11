@@ -45,8 +45,7 @@ class HotkeyManager:
             self.panic_hook = None
 
     def _play_sound_callback(self, sound):
-        if self.config.get("single_mode"):
-            self.audio_manager.stop_all()
+        self.audio_manager.stop_all()
             
         self.audio_manager.play_sound(
             filepath=sound.get("cached_file") or sound.get("file"),
