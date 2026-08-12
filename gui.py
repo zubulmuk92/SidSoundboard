@@ -40,8 +40,8 @@ class AppGUI(ctk.CTk):
         self.config = config_manager.load_config()
         
         self.title("SidSoundboard - Studio Edition")
-        self.geometry("900x650")
-        self.minsize(850, 600)
+        self.geometry("1000x700")
+        self.minsize(950, 650)
         
         try:
             self.iconbitmap(resource_path("logo.ico"))
