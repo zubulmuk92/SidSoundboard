@@ -29,11 +29,6 @@ def download_youtube_audio_async(url, output_dir, callback, progress_callback):
             ydl_opts = {
                 'format': 'bestaudio/best',
                 'outtmpl': os.path.join(output_dir, '%(title)s.%(ext)s'),
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
                 'quiet': True,
                 'no_warnings': True,
                 'progress_hooks': [yt_progress_hook]
@@ -43,18 +38,24 @@ def download_youtube_audio_async(url, output_dir, callback, progress_callback):
                 info_dict = ydl.extract_info(url, download=True)
                 
                 results = []
-                # Gestion Single vs Playlist
                 if 'entries' in info_dict:
                     entries = info_dict['entries']
                 else:
                     entries = [info_dict]
                     
+                from audio_processor import normalize_and_import_audio
+                    
                 for entry in entries:
                     if not entry: continue
                     file_path = ydl.prepare_filename(entry)
-                    final_path = os.path.splitext(file_path)[0] + '.mp3'
                     title = entry.get('title', 'Unknown')
-                    if os.path.exists(final_path):
+                    if os.path.exists(file_path):
+                        # Normalize and import to a new safe wav file
+                        final_path = normalize_and_import_audio(file_path, output_dir, title)
+                        # Delete the original downloaded file to keep it clean
+                        try:
+                            os.remove(file_path)
+                        except: pass
                         results.append((final_path, title))
                         
                 callback(True, results, "")

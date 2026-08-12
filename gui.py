@@ -46,8 +46,42 @@ class AppGUI(ctk.CTk):
         except Exception:
             pass
             
+        self.protocol('WM_DELETE_WINDOW', self.hide_window)
         self._build_ui()
         self.update_sound_list()
+
+    def hide_window(self):
+        self.withdraw()
+        if not hasattr(self, "tray_icon") or self.tray_icon is None:
+            self.create_tray_icon()
+            
+    def show_window(self, icon=None, item=None):
+        self.after(0, self.deiconify)
+        
+    def quit_app(self, icon=None, item=None):
+        if hasattr(self, "tray_icon") and self.tray_icon:
+            self.tray_icon.stop()
+        self.after(0, self.destroy)
+        import os
+        os._exit(0) # Ensure hotkey threads are killed
+        
+    def create_tray_icon(self):
+        import pystray
+        from PIL import Image
+        
+        try:
+            image = Image.open(resource_path("logo_sq.png"))
+        except:
+            image = Image.new('RGB', (64, 64), color=(24, 24, 27))
+            
+        menu = pystray.Menu(
+            pystray.MenuItem('Ouvrir', self.show_window, default=True),
+            pystray.MenuItem('Stop Audio', lambda i, it: self.after(0, self.audio_manager.stop_all)),
+            pystray.MenuItem('Quitter', self.quit_app)
+        )
+        self.tray_icon = pystray.Icon("SidSoundboard", image, "SidSoundboard", menu)
+        import threading
+        threading.Thread(target=self.tray_icon.run, daemon=True).start()
 
     def _build_ui(self):
         self.configure(fg_color=BG_COLOR)
@@ -252,7 +286,10 @@ class AppGUI(ctk.CTk):
         self.panic_btn = ctk.CTkButton(inner, text=f"KEY: {panic_val}", width=200, height=32, corner_radius=4, font=("Segoe UI", 12, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=self.bind_panic_key)
         self.panic_btn.pack(anchor="w", padx=30, pady=5)
         
-        ctk.CTkButton(inner, text="SAUVEGARDER", height=36, corner_radius=4, font=("Segoe UI", 12, "bold"), command=self.save_settings, fg_color="transparent", border_width=1, border_color=ACCENT_COLOR, hover_color=PANEL_COLOR, text_color=ACCENT_COLOR).pack(anchor="w", padx=30, pady=40)
+        self.solo_var = ctk.BooleanVar(value=self.config.get("mode_solo", False))
+        ctk.CTkSwitch(inner, text="Mode Solo (Anti-superposition de sons)", variable=self.solo_var, font=("Segoe UI", 12), text_color=TEXT_MAIN, progress_color=ACCENT_COLOR).pack(anchor="w", padx=30, pady=20)
+        
+        ctk.CTkButton(inner, text="SAUVEGARDER", height=36, corner_radius=4, font=("Segoe UI", 12, "bold"), command=self.save_settings, fg_color="transparent", border_width=1, border_color=ACCENT_COLOR, hover_color=PANEL_COLOR, text_color=ACCENT_COLOR).pack(anchor="w", padx=30, pady=20)
 
     def bind_panic_key(self):
         dialog = ctk.CTkToplevel(self)
@@ -312,13 +349,28 @@ class AppGUI(ctk.CTk):
             return
             
         for sound in sounds:
-            card = ctk.CTkFrame(self.sounds_scroll, height=85, corner_radius=4, fg_color=PANEL_COLOR, border_width=1, border_color=BORDER_COLOR)
+            color_map = {
+                "Gris": BORDER_COLOR,
+                "Rouge (Troll)": DANGER_COLOR,
+                "Bleu (Musique)": ACCENT_COLOR,
+                "Vert (SFX)": "#10B981",
+                "Violet (Voix)": "#8B5CF6",
+                "Orange (Alerte)": "#F59E0B"
+            }
+            c_val = sound.get("color", "Gris")
+            c_hex = color_map.get(c_val, BORDER_COLOR)
+            
+            card = ctk.CTkFrame(self.sounds_scroll, height=85, corner_radius=4, fg_color=PANEL_COLOR, border_width=1, border_color=c_hex)
             card.pack(fill="x", pady=5, padx=5)
             card.pack_propagate(False)
             
+            # Left Color Bar
+            color_bar = ctk.CTkFrame(card, width=6, corner_radius=0, fg_color=c_hex)
+            color_bar.pack(side="left", fill="y")
+            
             # Left: Play button (outline style)
-            btn_play = ctk.CTkButton(card, text="PLAY", width=65, height=55, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=lambda s=sound: self.play_sound(s))
-            btn_play.pack(side="left", padx=15, pady=15)
+            btn_play = ctk.CTkButton(card, text="PLAY", width=65, height=55, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color="transparent", border_width=1, border_color=c_hex, hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=lambda s=sound: self.play_sound(s))
+            btn_play.pack(side="left", padx=(10, 15), pady=15)
             self.play_buttons[sound["id"]] = btn_play
             
             # Center: Info & Sliders
@@ -346,7 +398,12 @@ class AppGUI(ctk.CTk):
             ctk.CTkLabel(sl_frame, text=f"VIT:", width=25, anchor="w", font=("Segoe UI", 10), text_color=TEXT_MUTED).pack(side="left")
             spd_slider = ctk.CTkSlider(sl_frame, from_=50, to=200, number_of_steps=30, height=6, width=100, progress_color="#10B981", fg_color=CARD_COLOR, button_color=TEXT_MAIN, button_hover_color="#FFFFFF")
             spd_slider.set(spd)
-            spd_slider.pack(side="left")
+            spd_slider.pack(side="left", padx=(0, 25))
+            
+            # Color Dropdown
+            color_combo = ctk.CTkComboBox(sl_frame, values=list(color_map.keys()), width=110, height=20, corner_radius=4, font=("Segoe UI", 10), fg_color=CARD_COLOR, border_color=BORDER_COLOR, button_color=CARD_COLOR)
+            color_combo.set(c_val)
+            color_combo.pack(side="left")
             
             # Right: Actions (Status, Bind, Delete)
             right_actions = ctk.CTkFrame(card, fg_color="transparent")
@@ -359,8 +416,14 @@ class AppGUI(ctk.CTk):
             def on_slider_release(e, s=sound, vp=vol_p_slider, sp=spd_slider, ind=status_lbl):
                 self.apply_audio(s["id"], vp.get(), sp.get(), ind)
                 
+            def on_color_change(choice, s=sound):
+                s["color"] = choice
+                config_manager.save_config(self.config)
+                self.update_sound_list()
+                
             vol_p_slider.bind("<ButtonRelease-1>", on_slider_release)
             spd_slider.bind("<ButtonRelease-1>", on_slider_release)
+            color_combo.configure(command=on_color_change)
             
             hk_val = sound.get("hotkey", "Aucun").upper()
             hk_btn = ctk.CTkButton(right_actions, text=f"KEY: {hk_val}", width=80, height=28, corner_radius=4, font=("Segoe UI", 10, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MUTED, command=lambda s=sound: self.bind_hotkey(s["id"]))
@@ -433,19 +496,42 @@ class AppGUI(ctk.CTk):
     def add_sound(self):
         filepath = filedialog.askopenfilename(filetypes=[("Fichiers Audio", "*.mp3 *.wav *.ogg *.flac")])
         if not filepath: return
-        new_sound = {
-            "id": str(uuid.uuid4()),
-            "name": os.path.basename(filepath).split('.')[0],
-            "file": filepath,
-            "hotkey": "Aucun",
-            "volume": 100,
-            "volume_secondary": 100,
-            "speed": 100
-        }
-        self.config["sounds"].append(new_sound)
-        config_manager.save_config(self.config)
-        self.hotkey_manager.load_hotkeys(self.config)
-        self.update_sound_list()
+        
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Importation")
+        dialog.geometry("300x100")
+        dialog.configure(fg_color=BG_COLOR)
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        ctk.CTkLabel(dialog, text="Importation et Normalisation en cours...", font=("Segoe UI", 12), text_color=TEXT_MAIN).pack(expand=True)
+        
+        def worker():
+            try:
+                from audio_processor import normalize_and_import_audio
+                dl_dir = os.path.join(os.path.abspath("."), "library")
+                base = os.path.basename(filepath).split('.')[0]
+                final_path = normalize_and_import_audio(filepath, dl_dir, base)
+                
+                new_sound = {
+                    "id": str(uuid.uuid4()),
+                    "name": base,
+                    "file": final_path,
+                    "hotkey": "Aucun",
+                    "volume": 100,
+                    "speed": 100,
+                    "color": "Gris"
+                }
+                self.config["sounds"].append(new_sound)
+                config_manager.save_config(self.config)
+                self.after(0, lambda: self.hotkey_manager.load_hotkeys(self.config))
+                self.after(0, self.update_sound_list)
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Erreur Import", str(e)))
+            finally:
+                self.after(0, dialog.destroy)
+                
+        threading.Thread(target=worker, daemon=True).start()
 
     def remove_sound(self, sound_id):
         if not messagebox.askyesno("Supprimer", "Voulez-vous supprimer ce son ?"): return
@@ -466,6 +552,9 @@ class AppGUI(ctk.CTk):
             filepath_sec = generate_cached_file_sync(original_file, vol_s, spd)
         except:
             filepath_sec = original_file
+            
+        if self.config.get("mode_solo", False):
+            self.audio_manager.stop_all()
             
         self.audio_manager.toggle_play_pause(
             filepath_primary=sound.get("cached_file_primary") or sound.get("cached_file") or original_file,
@@ -522,8 +611,8 @@ class AppGUI(ctk.CTk):
                                 "file": filepath,
                                 "hotkey": "Aucun",
                                 "volume": 100,
-                                "volume_secondary": 100,
-                                "speed": 100
+                                "speed": 100,
+                                "color": "Gris"
                             }
                             self.config["sounds"].append(new_sound)
                         config_manager.save_config(self.config)
@@ -549,6 +638,7 @@ class AppGUI(ctk.CTk):
         self.config["secondary_output"] = sec if sec != "Aucun" else None
         self.config["dual_output_enabled"] = self.dual_var.get()
         self.config["global_secondary_volume"] = int(self.sec_vol_var.get())
+        self.config["mode_solo"] = self.solo_var.get()
         
         config_manager.save_config(self.config)
         import cache_manager

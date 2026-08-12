@@ -57,11 +57,14 @@ class HotkeyManager:
         except:
             filepath_sec = original_file
             
+        if self.config.get("mode_solo", False):
+            self.audio_manager.stop_all()
+            
         self.audio_manager.toggle_play_pause(
             filepath_primary=sound.get("cached_file_primary") or sound.get("cached_file") or original_file,
             filepath_secondary=filepath_sec,
             name=sound.get("name", "Unknown"),
-            volume=1.0, # Volume is baked into the file now
+            volume=1.0,
             primary_device_name=self.config.get("primary_output"),
             secondary_device_name=self.config.get("secondary_output"),
             dual_enabled=self.config.get("dual_output_enabled", False),
