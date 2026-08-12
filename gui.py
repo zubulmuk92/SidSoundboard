@@ -434,7 +434,7 @@ class AppGUI(ctk.CTk):
             spd_slider.pack(side="left", padx=(0, 25))
             
             # Color Dropdown
-            color_combo = ctk.CTkComboBox(sl_frame, values=list(color_map.keys()), width=120, height=24, corner_radius=4, font=("Segoe UI", 11), fg_color=BG_COLOR, border_width=0, button_color=BG_COLOR)
+            color_combo = ctk.CTkComboBox(sl_frame, values=list(color_map.keys()), width=140, height=28, corner_radius=4, font=("Segoe UI", 11), dropdown_font=("Segoe UI", 11), fg_color=BG_COLOR, border_width=1, border_color=BORDER_COLOR, button_color=CARD_COLOR, button_hover_color=PANEL_COLOR)
             color_combo.set(c_val)
             color_combo.pack(side="left")
             
