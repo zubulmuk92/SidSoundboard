@@ -57,7 +57,7 @@ class AppGUI(ctk.CTk):
         self.header_frame.pack(fill="x", side="top")
         self.header_frame.pack_propagate(False)
         
-        self.title_label = ctk.CTkLabel(self.header_frame, text="SIDSOUNDBOARD", font=("Segoe UI", 15, "bold"), text_color=TEXT_MAIN, letter_spacing=1)
+        self.title_label = ctk.CTkLabel(self.header_frame, text="SIDSOUNDBOARD", font=("Segoe UI", 15, "bold"), text_color=TEXT_MAIN)
         self.title_label.pack(side="left", padx=20)
         
         self.stop_btn = ctk.CTkButton(self.header_frame, text="STOP AUDIO", width=110, height=28, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color=DANGER_COLOR, hover_color=DANGER_HOVER, text_color="#FFFFFF", command=self.audio_manager.stop_all)
