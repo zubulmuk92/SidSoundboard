@@ -17,17 +17,19 @@ def resource_path(relative_path):
 
 ctk.set_appearance_mode("Dark")
 
-# PRO COLOR PALETTE
-BG_COLOR = "#09090B"
-PANEL_COLOR = "#18181B"
-CARD_COLOR = "#27272A"
-BORDER_COLOR = "#3F3F46"
-ACCENT_COLOR = "#3B82F6"
-ACCENT_HOVER = "#2563EB"
-TEXT_MAIN = "#F4F4F5"
-TEXT_MUTED = "#A1A1AA"
-DANGER_COLOR = "#E11D48"
-DANGER_HOVER = "#BE123C"
+# PRO COLOR PALETTE (Studio)
+BG_COLOR = "#0F172A"
+PANEL_COLOR = "#1E293B"
+CARD_COLOR = "#334155"
+BORDER_COLOR = "#0F172A"
+ACCENT_COLOR = "#38BDF8"
+ACCENT_HOVER = "#0284C7"
+TEXT_MAIN = "#F8FAFC"
+TEXT_MUTED = "#94A3B8"
+DANGER_COLOR = "#EF4444"
+DANGER_HOVER = "#B91C1C"
+
+CR = 8 # Global Corner Radius
 
 class AppGUI(ctk.CTk):
     def __init__(self, audio_manager, hotkey_manager):
@@ -49,6 +51,19 @@ class AppGUI(ctk.CTk):
         self.protocol('WM_DELETE_WINDOW', self.hide_window)
         self._build_ui()
         self.update_sound_list()
+        self.after(50, self._set_dark_titlebar)
+
+    def _set_dark_titlebar(self):
+        try:
+            import ctypes
+            DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+            set_window_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
+            get_parent = ctypes.windll.user32.GetParent
+            hwnd = get_parent(self.winfo_id())
+            rendering_policy = ctypes.c_int(2)
+            set_window_attribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(rendering_policy), ctypes.sizeof(rendering_policy))
+        except Exception:
+            pass
 
     def hide_window(self):
         self.withdraw()
@@ -99,24 +114,24 @@ class AppGUI(ctk.CTk):
         def nav(view_name):
             for name, btn in self.nav_btns.items():
                 if name == view_name:
-                    btn.configure(fg_color=CARD_COLOR, text_color=ACCENT_COLOR)
+                    btn.configure(fg_color=CARD_COLOR, text_color=ACCENT_COLOR, font=("Segoe UI Variable Display", 13, "bold"))
                 else:
-                    btn.configure(fg_color="transparent", text_color=TEXT_MAIN)
+                    btn.configure(fg_color="transparent", text_color=TEXT_MAIN, font=("Segoe UI Variable Display", 13))
             self.show_view(view_name)
             
-        btn_lib = ctk.CTkButton(self.sidebar_frame, text="Bibliothèque", anchor="w", fg_color="transparent", hover_color=CARD_COLOR, text_color=TEXT_MAIN, font=("Segoe UI", 13, "bold"), command=lambda: nav("lib"))
-        btn_lib.pack(fill="x", padx=10, pady=5)
+        btn_lib = ctk.CTkButton(self.sidebar_frame, text="  Bibliothèque", anchor="w", corner_radius=CR, fg_color="transparent", hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=lambda: nav("lib"))
+        btn_lib.pack(fill="x", padx=15, pady=5)
         self.nav_btns["lib"] = btn_lib
         
-        btn_set = ctk.CTkButton(self.sidebar_frame, text="Paramètres", anchor="w", fg_color="transparent", hover_color=CARD_COLOR, text_color=TEXT_MAIN, font=("Segoe UI", 13, "bold"), command=lambda: nav("set"))
-        btn_set.pack(fill="x", padx=10, pady=5)
+        btn_set = ctk.CTkButton(self.sidebar_frame, text="  Paramètres", anchor="w", corner_radius=CR, fg_color="transparent", hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=lambda: nav("set"))
+        btn_set.pack(fill="x", padx=15, pady=5)
         self.nav_btns["set"] = btn_set
         
-        btn_rtg = ctk.CTkButton(self.sidebar_frame, text="Routage Virtuel", anchor="w", fg_color="transparent", hover_color=CARD_COLOR, text_color=TEXT_MAIN, font=("Segoe UI", 13, "bold"), command=lambda: nav("rtg"))
-        btn_rtg.pack(fill="x", padx=10, pady=5)
+        btn_rtg = ctk.CTkButton(self.sidebar_frame, text="  Routage Virtuel", anchor="w", corner_radius=CR, fg_color="transparent", hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=lambda: nav("rtg"))
+        btn_rtg.pack(fill="x", padx=15, pady=5)
         self.nav_btns["rtg"] = btn_rtg
         
-        self.stop_btn = ctk.CTkButton(self.sidebar_frame, text="STOP AUDIO", height=36, corner_radius=4, font=("Segoe UI", 12, "bold"), fg_color="transparent", border_width=1, border_color=DANGER_COLOR, hover_color=DANGER_HOVER, text_color=DANGER_COLOR, command=self.audio_manager.stop_all)
+        self.stop_btn = ctk.CTkButton(self.sidebar_frame, text="STOP AUDIO", height=36, corner_radius=CR, font=("Segoe UI", 12, "bold"), fg_color="transparent", border_width=1, border_color=DANGER_COLOR, hover_color=DANGER_HOVER, text_color=TEXT_MAIN, command=self.audio_manager.stop_all)
         self.stop_btn.pack(side="bottom", fill="x", padx=15, pady=20)
         
         # Main Content
@@ -154,15 +169,15 @@ class AppGUI(ctk.CTk):
         
         self.search_var = ctk.StringVar()
         self.search_var.trace("w", lambda name, index, mode: self.update_sound_list())
-        search_entry = ctk.CTkEntry(toolbar, textvariable=self.search_var, placeholder_text="Rechercher...", width=250, height=32, corner_radius=4, fg_color=PANEL_COLOR, border_color=BORDER_COLOR, text_color=TEXT_MAIN, font=("Segoe UI", 12))
+        search_entry = ctk.CTkEntry(toolbar, textvariable=self.search_var, placeholder_text="Rechercher un son...", width=280, height=36, corner_radius=CR, fg_color=PANEL_COLOR, border_width=0, text_color=TEXT_MAIN, font=("Segoe UI Variable Display", 13))
         search_entry.pack(side="left")
         
         # Modern outline buttons
-        ctk.CTkButton(toolbar, text="IMPORT LOCAL", width=110, height=32, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=PANEL_COLOR, text_color=TEXT_MAIN, command=self.add_sound).pack(side="right", padx=(10, 0))
-        ctk.CTkButton(toolbar, text="TELECHARGER URL", width=130, height=32, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color="transparent", border_width=1, border_color=ACCENT_COLOR, hover_color=PANEL_COLOR, text_color=ACCENT_COLOR, command=self.download_youtube).pack(side="right")
+        ctk.CTkButton(toolbar, text="IMPORT LOCAL", width=120, height=36, corner_radius=CR, font=("Segoe UI Variable Display", 11, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=PANEL_COLOR, text_color=TEXT_MAIN, command=self.add_sound).pack(side="right", padx=(10, 0))
+        ctk.CTkButton(toolbar, text="TÉLÉCHARGER URL", width=140, height=36, corner_radius=CR, font=("Segoe UI Variable Display", 11, "bold"), fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER, text_color="#FFFFFF", command=self.download_youtube).pack(side="right")
         
         # Player (Top right below toolbar)
-        self.player_frame = ctk.CTkFrame(self.content_frame, height=45, corner_radius=4, fg_color=PANEL_COLOR, border_width=1, border_color=BORDER_COLOR)
+        self.player_frame = ctk.CTkFrame(self.content_frame, height=45, corner_radius=CR, fg_color=PANEL_COLOR, border_width=0)
         self.player_frame.pack(fill="x", padx=20, pady=(0, 15))
         self.player_frame.pack_propagate(False)
         
@@ -344,8 +359,15 @@ class AppGUI(ctk.CTk):
             sounds = [s for s in sounds if search_q in s["name"].lower()]
             
         if not sounds:
-            txt = "Aucun résultat." if search_q else "La bibliothèque est vide."
-            ctk.CTkLabel(self.sounds_scroll, text=txt, font=("Segoe UI", 13), text_color=TEXT_MUTED).pack(pady=50)
+            empty_frame = ctk.CTkFrame(self.sounds_scroll, fg_color="transparent")
+            empty_frame.pack(expand=True, fill="both", pady=100)
+            
+            if search_q:
+                ctk.CTkLabel(empty_frame, text="Aucun résultat trouvé.", font=("Segoe UI Variable Display", 16, "bold"), text_color=TEXT_MAIN).pack(pady=5)
+                ctk.CTkLabel(empty_frame, text="Essayez un autre mot-clé.", font=("Segoe UI", 13), text_color=TEXT_MUTED).pack()
+            else:
+                ctk.CTkLabel(empty_frame, text="Votre bibliothèque est vide.", font=("Segoe UI Variable Display", 18, "bold"), text_color=TEXT_MAIN).pack(pady=(0, 5))
+                ctk.CTkLabel(empty_frame, text="Commencez par importer un fichier local\nou téléchargez un son depuis YouTube.", font=("Segoe UI", 14), text_color=TEXT_MUTED).pack(pady=5)
             return
             
         for sound in sounds:
@@ -360,17 +382,17 @@ class AppGUI(ctk.CTk):
             c_val = sound.get("color", "Gris")
             c_hex = color_map.get(c_val, BORDER_COLOR)
             
-            card = ctk.CTkFrame(self.sounds_scroll, height=85, corner_radius=4, fg_color=PANEL_COLOR, border_width=1, border_color=c_hex)
-            card.pack(fill="x", pady=5, padx=5)
+            card = ctk.CTkFrame(self.sounds_scroll, height=85, corner_radius=CR, fg_color=PANEL_COLOR, border_width=1, border_color=c_hex if c_val != "Gris" else BG_COLOR)
+            card.pack(fill="x", pady=6, padx=5)
             card.pack_propagate(False)
             
             # Left Color Bar
             color_bar = ctk.CTkFrame(card, width=6, corner_radius=0, fg_color=c_hex)
             color_bar.pack(side="left", fill="y")
             
-            # Left: Play button (outline style)
-            btn_play = ctk.CTkButton(card, text="PLAY", width=65, height=55, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color="transparent", border_width=1, border_color=c_hex, hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=lambda s=sound: self.play_sound(s))
-            btn_play.pack(side="left", padx=(10, 15), pady=15)
+            # Left: Play button
+            btn_play = ctk.CTkButton(card, text="PLAY", width=65, height=55, corner_radius=CR, font=("Segoe UI", 11, "bold"), fg_color=BG_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=lambda s=sound: self.play_sound(s))
+            btn_play.pack(side="left", padx=(15, 15), pady=15)
             self.play_buttons[sound["id"]] = btn_play
             
             # Center: Info & Sliders
@@ -389,19 +411,19 @@ class AppGUI(ctk.CTk):
             sl_frame.place(relx=0.0, rely=0.75, anchor="w", relwidth=1.0)
             
             # Vol
-            ctk.CTkLabel(sl_frame, text=f"VOL:", width=35, anchor="w", font=("Segoe UI", 10), text_color=TEXT_MUTED).pack(side="left")
-            vol_p_slider = ctk.CTkSlider(sl_frame, from_=0, to=400, number_of_steps=40, height=6, width=100, progress_color=ACCENT_COLOR, fg_color=CARD_COLOR, button_color=TEXT_MAIN, button_hover_color="#FFFFFF")
+            ctk.CTkLabel(sl_frame, text=f"VOL:", width=35, anchor="w", font=("Segoe UI", 10, "bold"), text_color=TEXT_MUTED).pack(side="left")
+            vol_p_slider = ctk.CTkSlider(sl_frame, from_=0, to=400, number_of_steps=40, height=8, width=100, progress_color=ACCENT_COLOR, fg_color=BG_COLOR, button_color=TEXT_MAIN, button_hover_color="#FFFFFF")
             vol_p_slider.set(vol_p)
             vol_p_slider.pack(side="left", padx=(0, 25))
             
             # Speed
-            ctk.CTkLabel(sl_frame, text=f"VIT:", width=25, anchor="w", font=("Segoe UI", 10), text_color=TEXT_MUTED).pack(side="left")
-            spd_slider = ctk.CTkSlider(sl_frame, from_=50, to=200, number_of_steps=30, height=6, width=100, progress_color="#10B981", fg_color=CARD_COLOR, button_color=TEXT_MAIN, button_hover_color="#FFFFFF")
+            ctk.CTkLabel(sl_frame, text=f"VIT:", width=25, anchor="w", font=("Segoe UI", 10, "bold"), text_color=TEXT_MUTED).pack(side="left")
+            spd_slider = ctk.CTkSlider(sl_frame, from_=50, to=200, number_of_steps=30, height=8, width=100, progress_color="#10B981", fg_color=BG_COLOR, button_color=TEXT_MAIN, button_hover_color="#FFFFFF")
             spd_slider.set(spd)
             spd_slider.pack(side="left", padx=(0, 25))
             
             # Color Dropdown
-            color_combo = ctk.CTkComboBox(sl_frame, values=list(color_map.keys()), width=110, height=20, corner_radius=4, font=("Segoe UI", 10), fg_color=CARD_COLOR, border_color=BORDER_COLOR, button_color=CARD_COLOR)
+            color_combo = ctk.CTkComboBox(sl_frame, values=list(color_map.keys()), width=120, height=24, corner_radius=4, font=("Segoe UI", 11), fg_color=BG_COLOR, border_width=0, button_color=BG_COLOR)
             color_combo.set(c_val)
             color_combo.pack(side="left")
             
@@ -426,10 +448,10 @@ class AppGUI(ctk.CTk):
             color_combo.configure(command=on_color_change)
             
             hk_val = sound.get("hotkey", "Aucun").upper()
-            hk_btn = ctk.CTkButton(right_actions, text=f"KEY: {hk_val}", width=80, height=28, corner_radius=4, font=("Segoe UI", 10, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MUTED, command=lambda s=sound: self.bind_hotkey(s["id"]))
+            hk_btn = ctk.CTkButton(right_actions, text=f"KEY: {hk_val}", width=80, height=28, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color=BG_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MUTED, command=lambda s=sound: self.bind_hotkey(s["id"]))
             hk_btn.pack(side="left", padx=5)
             
-            btn_del = ctk.CTkButton(right_actions, text="SUPP", width=45, height=28, corner_radius=4, font=("Segoe UI", 10, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=DANGER_HOVER, text_color=DANGER_COLOR, command=lambda s=sound: self.remove_sound(s["id"]))
+            btn_del = ctk.CTkButton(right_actions, text="SUPP", width=45, height=28, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color="transparent", hover_color=DANGER_HOVER, text_color=DANGER_COLOR, command=lambda s=sound: self.remove_sound(s["id"]))
             btn_del.pack(side="left")
 
     def bind_hotkey(self, sound_id):
