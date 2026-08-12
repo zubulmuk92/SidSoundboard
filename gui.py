@@ -114,9 +114,9 @@ class AppGUI(ctk.CTk):
         def nav(view_name):
             for name, btn in self.nav_btns.items():
                 if name == view_name:
-                    btn.configure(fg_color=CARD_COLOR, text_color=ACCENT_COLOR, font=("Segoe UI Variable Display", 13, "bold"))
+                    btn.configure(fg_color=CARD_COLOR, text_color=ACCENT_COLOR, font=("Segoe UI", 13, "bold"))
                 else:
-                    btn.configure(fg_color="transparent", text_color=TEXT_MAIN, font=("Segoe UI Variable Display", 13))
+                    btn.configure(fg_color="transparent", text_color=TEXT_MAIN, font=("Segoe UI", 13))
             self.show_view(view_name)
             
         btn_lib = ctk.CTkButton(self.sidebar_frame, text="  Bibliothèque", anchor="w", corner_radius=CR, fg_color="transparent", hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=lambda: nav("lib"))
@@ -168,13 +168,18 @@ class AppGUI(ctk.CTk):
         toolbar.pack_propagate(False)
         
         self.search_var = ctk.StringVar()
-        self.search_var.trace("w", lambda name, index, mode: self.update_sound_list())
-        search_entry = ctk.CTkEntry(toolbar, textvariable=self.search_var, placeholder_text="Rechercher un son...", width=280, height=36, corner_radius=CR, fg_color=PANEL_COLOR, border_width=0, text_color=TEXT_MAIN, font=("Segoe UI Variable Display", 13))
+        search_entry = ctk.CTkEntry(toolbar, placeholder_text="Rechercher un son...", width=280, height=36, corner_radius=CR, fg_color=PANEL_COLOR, border_width=0, text_color=TEXT_MAIN, font=("Segoe UI", 13))
         search_entry.pack(side="left")
         
+        def on_search_change(e):
+            self.search_var.set(search_entry.get())
+            self.update_sound_list()
+            
+        search_entry.bind("<KeyRelease>", on_search_change)
+        
         # Modern outline buttons
-        ctk.CTkButton(toolbar, text="IMPORT LOCAL", width=120, height=36, corner_radius=CR, font=("Segoe UI Variable Display", 11, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=PANEL_COLOR, text_color=TEXT_MAIN, command=self.add_sound).pack(side="right", padx=(10, 0))
-        ctk.CTkButton(toolbar, text="TÉLÉCHARGER URL", width=140, height=36, corner_radius=CR, font=("Segoe UI Variable Display", 11, "bold"), fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER, text_color="#FFFFFF", command=self.download_youtube).pack(side="right")
+        ctk.CTkButton(toolbar, text="IMPORT LOCAL", width=120, height=36, corner_radius=CR, font=("Segoe UI", 11, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=PANEL_COLOR, text_color=TEXT_MAIN, command=self.add_sound).pack(side="right", padx=(10, 0))
+        ctk.CTkButton(toolbar, text="TÉLÉCHARGER URL", width=140, height=36, corner_radius=CR, font=("Segoe UI", 11, "bold"), fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER, text_color="#FFFFFF", command=self.download_youtube).pack(side="right")
         
         # Player (Top right below toolbar)
         self.player_frame = ctk.CTkFrame(self.content_frame, height=45, corner_radius=CR, fg_color=PANEL_COLOR, border_width=0)
@@ -363,10 +368,10 @@ class AppGUI(ctk.CTk):
             empty_frame.pack(expand=True, fill="both", pady=100)
             
             if search_q:
-                ctk.CTkLabel(empty_frame, text="Aucun résultat trouvé.", font=("Segoe UI Variable Display", 16, "bold"), text_color=TEXT_MAIN).pack(pady=5)
+                ctk.CTkLabel(empty_frame, text="Aucun résultat trouvé.", font=("Segoe UI", 16, "bold"), text_color=TEXT_MAIN).pack(pady=5)
                 ctk.CTkLabel(empty_frame, text="Essayez un autre mot-clé.", font=("Segoe UI", 13), text_color=TEXT_MUTED).pack()
             else:
-                ctk.CTkLabel(empty_frame, text="Votre bibliothèque est vide.", font=("Segoe UI Variable Display", 18, "bold"), text_color=TEXT_MAIN).pack(pady=(0, 5))
+                ctk.CTkLabel(empty_frame, text="Votre bibliothèque est vide.", font=("Segoe UI", 18, "bold"), text_color=TEXT_MAIN).pack(pady=(0, 5))
                 ctk.CTkLabel(empty_frame, text="Commencez par importer un fichier local\nou téléchargez un son depuis YouTube.", font=("Segoe UI", 14), text_color=TEXT_MUTED).pack(pady=5)
             return
             
