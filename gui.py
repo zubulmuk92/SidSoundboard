@@ -171,7 +171,13 @@ class AppGUI(ctk.CTk):
         search_entry = ctk.CTkEntry(toolbar, placeholder_text="Rechercher un son...", width=280, height=36, corner_radius=CR, fg_color=PANEL_COLOR, border_width=0, text_color=TEXT_MAIN, font=("Segoe UI", 13))
         search_entry.pack(side="left")
         
+        self._search_timer = None
         def on_search_change(e):
+            if self._search_timer:
+                self.after_cancel(self._search_timer)
+            self._search_timer = self.after(250, _do_search)
+            
+        def _do_search():
             self.search_var.set(search_entry.get())
             self.update_sound_list()
             
@@ -443,23 +449,27 @@ class AppGUI(ctk.CTk):
             def on_slider_release(e, s=sound, vp=vol_p_slider, sp=spd_slider, ind=status_lbl):
                 self.apply_audio(s["id"], vp.get(), sp.get(), ind)
                 
-            def on_color_change(choice, s=sound):
+            def on_color_change(choice, s=sound, c_bar=color_bar, crd=card):
                 s["color"] = choice
                 config_manager.save_config(self.config)
-                self.update_sound_list()
+                # In-place update to prevent UI stutter
+                new_hex = color_map.get(choice, BORDER_COLOR)
+                c_bar.configure(fg_color=new_hex)
+                crd.configure(border_color=new_hex if choice != "Gris" else BG_COLOR)
                 
             vol_p_slider.bind("<ButtonRelease-1>", on_slider_release)
             spd_slider.bind("<ButtonRelease-1>", on_slider_release)
             color_combo.configure(command=on_color_change)
             
             hk_val = sound.get("hotkey", "Aucun").upper()
-            hk_btn = ctk.CTkButton(right_actions, text=f"KEY: {hk_val}", width=80, height=28, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color=BG_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MUTED, command=lambda s=sound: self.bind_hotkey(s["id"]))
+            hk_btn = ctk.CTkButton(right_actions, text=f"KEY: {hk_val}", width=80, height=28, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color=BG_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MUTED)
+            hk_btn.configure(command=lambda s=sound, b=hk_btn: self.bind_hotkey(s["id"], b))
             hk_btn.pack(side="left", padx=5)
             
             btn_del = ctk.CTkButton(right_actions, text="SUPP", width=45, height=28, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color="transparent", hover_color=DANGER_HOVER, text_color=DANGER_COLOR, command=lambda s=sound: self.remove_sound(s["id"]))
             btn_del.pack(side="left")
 
-    def bind_hotkey(self, sound_id):
+    def bind_hotkey(self, sound_id, hk_btn=None):
         dialog = ctk.CTkToplevel(self)
         dialog.title("Assigner Raccourci")
         dialog.geometry("300x140")
@@ -479,14 +489,19 @@ class AppGUI(ctk.CTk):
             self.after(0, lambda: apply_hotkey(hk))
             
         def apply_hotkey(hk):
-            if not dialog.winfo_exists():
+            if hk == 'escape':
+                dialog.destroy()
                 return
-            sound = next((s for s in self.config["sounds"] if s["id"] == sound_id), None)
-            if sound:
-                sound["hotkey"] = hk
-                config_manager.save_config(self.config)
-                self.hotkey_manager.load_hotkeys(self.config)
-                self.update_sound_list()
+            
+            for s in self.config["sounds"]:
+                if s["id"] == sound_id:
+                    s["hotkey"] = hk
+                    break
+            config_manager.save_config(self.config)
+            self.hotkey_manager.load_hotkeys(self.config)
+            
+            if hk_btn:
+                hk_btn.configure(text=f"KEY: {hk.upper()}")
             dialog.destroy()
             
         threading.Thread(target=capture_hotkey, daemon=True).start()
