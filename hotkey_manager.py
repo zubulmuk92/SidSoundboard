@@ -45,15 +45,27 @@ class HotkeyManager:
             self.panic_hook = None
 
     def _play_sound_callback(self, sound):
-        self.audio_manager.stop_all()
+        vol_p = sound.get("volume", 100)
+        spd = sound.get("speed", 100)
+        global_sec_vol = self.config.get("global_secondary_volume", 100)
+        vol_s = int(vol_p * (global_sec_vol / 100.0))
+        
+        original_file = sound.get("file")
+        from audio_processor import generate_cached_file_sync
+        try:
+            filepath_sec = generate_cached_file_sync(original_file, vol_s, spd)
+        except:
+            filepath_sec = original_file
             
-        self.audio_manager.play_sound(
-            filepath=sound.get("cached_file") or sound.get("file"),
+        self.audio_manager.toggle_play_pause(
+            filepath_primary=sound.get("cached_file_primary") or sound.get("cached_file") or original_file,
+            filepath_secondary=filepath_sec,
             name=sound.get("name", "Unknown"),
             volume=1.0, # Volume is baked into the file now
             primary_device_name=self.config.get("primary_output"),
             secondary_device_name=self.config.get("secondary_output"),
-            dual_enabled=self.config.get("dual_output_enabled", False)
+            dual_enabled=self.config.get("dual_output_enabled", False),
+            sound_id=sound.get("id")
         )
 
     def _panic_callback(self, event):

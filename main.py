@@ -4,6 +4,7 @@ from config_manager import load_config
 from audio_manager import AudioManager
 from hotkey_manager import HotkeyManager
 from gui import AppGUI
+import cache_manager
 
 def main():
     if sys.stdout is None:
@@ -11,6 +12,8 @@ def main():
     if sys.stderr is None:
         sys.stderr = open(os.devnull, 'w')
         
+    cache_manager.cleanup_caches()
+    
     config = load_config()
     
     audio_manager = AudioManager()
