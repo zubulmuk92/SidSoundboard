@@ -248,11 +248,40 @@ class AppGUI(ctk.CTk):
         ctk.CTkLabel(inner, text="SYSTÈME", font=("Segoe UI", 16, "bold"), text_color=TEXT_MAIN).pack(anchor="w", padx=30, pady=(30, 10))
         
         ctk.CTkLabel(inner, text="Touche d'arrêt d'urgence (Panic Key) :", font=("Segoe UI", 12), text_color=TEXT_MUTED).pack(anchor="w", padx=30, pady=(10, 0))
-        self.panic_entry = ctk.CTkEntry(inner, width=200, height=32, corner_radius=4, fg_color=CARD_COLOR, border_color=BORDER_COLOR, text_color=TEXT_MAIN, font=("Segoe UI", 12))
-        self.panic_entry.insert(0, self.config.get("panic_key", "pause"))
-        self.panic_entry.pack(anchor="w", padx=30, pady=5)
+        panic_val = self.config.get("panic_key", "pause").upper()
+        self.panic_btn = ctk.CTkButton(inner, text=f"KEY: {panic_val}", width=200, height=32, corner_radius=4, font=("Segoe UI", 12, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MAIN, command=self.bind_panic_key)
+        self.panic_btn.pack(anchor="w", padx=30, pady=5)
         
         ctk.CTkButton(inner, text="SAUVEGARDER", height=36, corner_radius=4, font=("Segoe UI", 12, "bold"), command=self.save_settings, fg_color="transparent", border_width=1, border_color=ACCENT_COLOR, hover_color=PANEL_COLOR, text_color=ACCENT_COLOR).pack(anchor="w", padx=30, pady=40)
+
+    def bind_panic_key(self):
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Assigner Raccourci")
+        dialog.geometry("300x140")
+        dialog.configure(fg_color=BG_COLOR)
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        lbl = ctk.CTkLabel(dialog, text="Appuyez sur une touche ou combinaison...", font=("Segoe UI", 12), text_color=TEXT_MAIN)
+        lbl.pack(expand=True, pady=15)
+        
+        btn_cancel = ctk.CTkButton(dialog, text="ANNULER", width=100, height=28, corner_radius=4, font=("Segoe UI", 11, "bold"), fg_color="transparent", border_width=1, border_color=BORDER_COLOR, hover_color=CARD_COLOR, text_color=TEXT_MUTED, command=dialog.destroy)
+        btn_cancel.pack(pady=15)
+        
+        def capture_hotkey():
+            import keyboard
+            hk = keyboard.read_hotkey(suppress=False)
+            self.after(0, lambda: apply_hotkey(hk))
+            
+        def apply_hotkey(hk):
+            if not dialog.winfo_exists():
+                return
+            self.config["panic_key"] = hk
+            if hasattr(self, 'panic_btn'):
+                self.panic_btn.configure(text=f"KEY: {hk.upper()}")
+            dialog.destroy()
+            
+        threading.Thread(target=capture_hotkey, daemon=True).start()
 
     def _build_discord_view(self):
         inner = ctk.CTkFrame(self.content_frame, fg_color=PANEL_COLOR, corner_radius=4, border_width=1, border_color=BORDER_COLOR)
@@ -520,7 +549,6 @@ class AppGUI(ctk.CTk):
         self.config["secondary_output"] = sec if sec != "Aucun" else None
         self.config["dual_output_enabled"] = self.dual_var.get()
         self.config["global_secondary_volume"] = int(self.sec_vol_var.get())
-        self.config["panic_key"] = self.panic_entry.get()
         
         config_manager.save_config(self.config)
         import cache_manager
