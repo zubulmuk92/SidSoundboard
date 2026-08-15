@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Flocon } from "./Flocon";
 
 const etapes: { titre: string; texte: ReactNode }[] = [
   {
@@ -35,8 +36,11 @@ const etapes: { titre: string; texte: ReactNode }[] = [
 
 export function Installation() {
   return (
-    <section id="installation" className="section section-alt">
-      <div className="conteneur">
+    <section id="installation" className="section section-alt overflow-clip">
+      <Flocon className="top-[6%] -right-[8%] w-[min(460px,52vw)] text-gel/12" duree="150s" />
+      <Flocon className="bottom-[8%] -left-[10%] w-[min(280px,34vw)] text-azur/10" duree="200s" />
+
+      <div className="conteneur relative">
         <p className="eyebrow reveal">Installation</p>
         <h2 className="titre-section reveal">Trois étapes, dans cet ordre.</h2>
 

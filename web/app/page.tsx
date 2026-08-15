@@ -1,7 +1,7 @@
 import { AppelFinal } from "@/components/AppelFinal";
-import { Bandeau } from "@/components/Bandeau";
 import { Editeur } from "@/components/Editeur";
 import { Hero } from "@/components/Hero";
+import { Horizon } from "@/components/Horizon";
 import { Installation } from "@/components/Installation";
 import { Moteur } from "@/components/Moteur";
 import { Nav } from "@/components/Nav";
@@ -26,7 +26,7 @@ export default function Page() {
       <main id="contenu">
         <Hero />
         <Moteur />
-        <Bandeau />
+        <Horizon />
         <Editeur />
         <Installation />
         <AppelFinal />

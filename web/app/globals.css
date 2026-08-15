@@ -339,20 +339,17 @@
   filter: drop-shadow(0 0 20px rgb(47 168 255 / 0.55));
 }
 
-/* Bandeau défilant : la liste est dupliquée, on la décale d'une moitié
-   exacte pour que la boucle soit invisible. */
-.bandeau-piste {
-  display: flex;
-  width: max-content;
-  animation: defile 38s linear infinite;
+/* Cristal de glace : une rotation continue, très lente. */
+.anim-cristal {
+  animation: cristal 120s linear infinite;
 }
 
-@keyframes defile {
+@keyframes cristal {
   from {
-    transform: translateX(0);
+    transform: rotate(0deg);
   }
   to {
-    transform: translateX(-50%);
+    transform: rotate(360deg);
   }
 }
 
@@ -443,7 +440,7 @@
   .anim-derive,
   .anim-halo,
   .anim-onde,
-  .bandeau-piste,
+  .anim-cristal,
   .rt-fil {
     animation: none;
   }
