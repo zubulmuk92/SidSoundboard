@@ -3,6 +3,9 @@ import glob
 import config_manager
 
 # Cache families this module owns and is free to delete when orphaned.
+# *_v*_s* is legacy: nothing writes those any more since the cable
+# render became a pre-baked _sec file, but older installs still have
+# them on disk and this is what clears them.
 CACHE_PATTERNS = ("*_v*_s*.*", "*_fx.wav", "*_fx.wav.peaks.json", "*_sec.wav")
 
 # Preview renders are throwaway by construction: never protected.
