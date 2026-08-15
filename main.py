@@ -20,6 +20,7 @@ if sys.stdout is None:
 if sys.stderr is None:
     sys.stderr = open(os.devnull, 'w')
 
+import i18n
 from config_manager import load_config
 from audio_manager import AudioManager
 from hotkey_manager import HotkeyManager
@@ -36,6 +37,7 @@ def main():
     cache_manager.cleanup_caches()
 
     config = load_config()
+    i18n.set_language(config.get("language", i18n.DEFAULT_LANGUAGE))
 
     audio_manager = AudioManager()
 
@@ -76,8 +78,8 @@ def main():
         QMetaObject.invokeMethod(qt_app, "quit", Qt.QueuedConnection)
 
     tray_icon = pystray.Icon("SidSoundboard", icon_image, "SidSoundboard", menu=pystray.Menu(
-        pystray.MenuItem("Ouvrir l'Interface", show_window, default=True),
-        pystray.MenuItem("Quitter", quit_app)
+        pystray.MenuItem(i18n.tr("tray.open"), show_window, default=True),
+        pystray.MenuItem(i18n.tr("tray.quit"), quit_app)
     ))
 
     threading.Thread(target=tray_icon.run, daemon=True).start()

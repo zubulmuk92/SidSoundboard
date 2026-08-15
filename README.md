@@ -34,6 +34,8 @@ Vous voulez entendre le son doucement dans votre casque, mais l'envoyer très fo
   crevasse, conçu avec `PySide6` (Qt). Le rouge du bouton STOP est la seule
   couleur chaude de l'interface — impossible de le rater en pleine partie.
 - S'adapte automatiquement au mode clair/sombre de Windows.
+- Interface disponible en **français** et en **anglais** (Réglages → Langue).
+  Le changement est immédiat, sans redémarrage.
 
 ## 📦 Installation & Utilisation
 Le projet est packagé en un seul fichier `.exe` autonome.

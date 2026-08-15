@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 import config_manager
+from i18n import tr
 from audio_processor import (
     generate_and_save_peaks, generate_effects_cache, normalize_and_import_audio
 )
@@ -44,7 +45,7 @@ class LibraryView(QWidget):
 
         topbar = QHBoxLayout()
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Rechercher un son (Titre, Touche, Catégorie)...")
+        self.search_input.setPlaceholderText(tr("library.search"))
         self.search_input.setFixedHeight(36)
         self.search_timer = QTimer()
         self.search_timer.setSingleShot(True)
@@ -52,13 +53,13 @@ class LibraryView(QWidget):
         self.search_input.textChanged.connect(lambda _t: self.search_timer.start(300))
         topbar.addWidget(self.search_input)
 
-        btn_add = QPushButton(" IMPORT LOCAL")
+        btn_add = QPushButton(tr("library.import"))
         btn_add.setIcon(get_icon("add.svg"))
         btn_add.setFixedHeight(36)
         btn_add.clicked.connect(self.add_sound)
         topbar.addWidget(btn_add)
 
-        btn_yt = QPushButton(" YT DOWNLOAD")
+        btn_yt = QPushButton(tr("library.youtube"))
         btn_yt.setIcon(get_icon("download.svg"))
         btn_yt.setProperty("class", "accent")
         btn_yt.setFixedHeight(36)
@@ -132,13 +133,9 @@ class LibraryView(QWidget):
 
     def _empty_state(self):
         if self.sounds:
-            text = "Aucun son ne correspond à cette recherche."
+            text = tr("library.empty_search")
         else:
-            text = (
-                "Votre bibliothèque est vide.\n\n"
-                "Importez un fichier audio, ou collez une URL YouTube pour "
-                "télécharger un son directement."
-            )
+            text = tr("library.empty")
         label = QLabel(text)
         label.setObjectName("EmptyState")
         label.setAlignment(Qt.AlignCenter)
@@ -207,7 +204,7 @@ class LibraryView(QWidget):
 
     def remove_sound(self, sound_id):
         reply = QMessageBox.question(
-            self, "Confirmation", "Êtes-vous sûr de vouloir supprimer ce son ?",
+            self, tr("common.confirm"), tr("library.delete_body"),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         if reply == QMessageBox.No:
@@ -247,8 +244,7 @@ class LibraryView(QWidget):
 
     def add_sound(self):
         f, _ = QFileDialog.getOpenFileName(
-            self, "Sélectionner un fichier audio", "",
-            "Audio Files (*.mp3 *.wav *.ogg *.flac *.m4a)",
+            self, tr("library.pick_file"), "", tr("library.audio_filter"),
             options=QFileDialog.DontUseNativeDialog
         )
         if not f:
@@ -257,8 +253,8 @@ class LibraryView(QWidget):
         sid = str(uuid.uuid4())[:8]
         name = os.path.basename(f)
 
-        self.progress_dialog = QProgressDialog("Importation et normalisation en cours...", None, 0, 0, self)
-        self.progress_dialog.setWindowTitle("Veuillez patienter")
+        self.progress_dialog = QProgressDialog(tr("library.importing"), None, 0, 0, self)
+        self.progress_dialog.setWindowTitle(tr("common.please_wait"))
         self.progress_dialog.setWindowModality(Qt.WindowModal)
         self.progress_dialog.setCancelButton(None)
         self.progress_dialog.show()
@@ -283,27 +279,27 @@ class LibraryView(QWidget):
             self._persist()
             self.refresh()
         else:
-            QMessageBox.critical(self, "Erreur", "Échec de l'import du fichier audio.")
+            QMessageBox.critical(self, tr("common.error"), tr("library.import_failed"))
 
     def download_youtube(self):
         dlg = QDialog(self)
-        dlg.setWindowTitle("Télécharger YouTube")
+        dlg.setWindowTitle(tr("yt.title"))
         dlg.setFixedSize(400, 200)
 
         layout = QVBoxLayout(dlg)
         url_input = QLineEdit()
-        url_input.setPlaceholderText("URL YouTube (https://...)")
+        url_input.setPlaceholderText(tr("yt.url"))
         layout.addWidget(url_input)
 
         title_input = QLineEdit()
-        title_input.setPlaceholderText("Nom du son (optionnel)")
+        title_input.setPlaceholderText(tr("yt.name"))
         layout.addWidget(title_input)
 
         pb = QProgressBar()
         pb.setValue(0)
         layout.addWidget(pb)
 
-        btn_dl = QPushButton("TÉLÉCHARGER")
+        btn_dl = QPushButton(tr("yt.download"))
         btn_dl.setProperty("class", "accent")
         layout.addWidget(btn_dl)
 
@@ -343,7 +339,7 @@ class LibraryView(QWidget):
                 self._persist()
                 self.refresh()
             else:
-                QMessageBox.critical(self, "Erreur", f"Échec: {err}")
+                QMessageBox.critical(self, tr("common.error"), tr("yt.failed", error=err))
 
         sigs.done.connect(finish)
         btn_dl.clicked.connect(start_dl)

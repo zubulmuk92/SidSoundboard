@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout
 
 from audio_processor import resolve_playback_file
+from i18n import category_key, category_label, tr
 from ui.theme import ACCENT_TEXT, BG_APP, CATEGORY_COLORS, TEXT_MAIN, TEXT_MUTED, get_icon
 from ui.widgets.waveform import WaveformWidget, load_peaks
 
@@ -44,13 +45,14 @@ class SoundCard(QFrame):
 
         btn_edit = QPushButton()
         btn_edit.setIcon(get_icon("edit.svg"))
-        btn_edit.setToolTip("Éditer le son (effets, découpe, fondus)")
+        btn_edit.setToolTip(tr("card.edit_tooltip"))
         btn_edit.setFixedSize(28, 28)
         btn_edit.clicked.connect(lambda: self.edit_requested.emit(self.sound["id"]))
         top_row.addWidget(btn_edit)
 
         btn_del = QPushButton()
         btn_del.setIcon(get_icon("delete.svg"))
+        btn_del.setToolTip(tr("card.delete_tooltip"))
         btn_del.setProperty("class", "danger")
         btn_del.setFixedSize(28, 28)
         btn_del.clicked.connect(lambda: self.delete_requested.emit(self.sound["id"]))
@@ -88,10 +90,13 @@ class SoundCard(QFrame):
         bot_row.addWidget(vol_label)
 
         cb_color = QComboBox()
-        cb_color.addItems(list(CATEGORY_COLORS.keys()))
-        cb_color.setCurrentText(cat)
+        cb_color.addItems([category_label(k) for k in CATEGORY_COLORS])
+        cb_color.setCurrentText(category_label(cat))
         cb_color.setFixedWidth(58)
-        cb_color.currentTextChanged.connect(lambda c: self.color_changed.emit(self.sound["id"], c))
+        # The combo shows a localized label; the config keeps the canonical key.
+        cb_color.currentTextChanged.connect(
+            lambda c: self.color_changed.emit(self.sound["id"], category_key(c))
+        )
         bot_row.addWidget(cb_color)
 
         layout.addLayout(bot_row)
@@ -110,7 +115,7 @@ class SoundCard(QFrame):
         self._playing_state = state
 
         playing = state == "playing"
-        self.btn_play.setText(" PAUSE" if playing else " PLAY")
+        self.btn_play.setText(tr("card.pause" if playing else "card.play"))
         self.btn_play.setIcon(
             get_icon("pause.svg" if playing else "play.svg", ACCENT_TEXT)
         )

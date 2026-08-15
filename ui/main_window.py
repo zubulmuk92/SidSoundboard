@@ -1,7 +1,7 @@
 import threading
 
 import keyboard
-from PySide6.QtCore import QSize, Qt, QTimer, Signal, Slot
+from PySide6.QtCore import Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget,
@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
 )
 
 import config_manager
+import i18n
+from i18n import tr
 from audio_processor import ensure_caches, resolve_playback_file, resolve_secondary_file
 from ui.theme import QSS, TEXT_MAIN, get_icon, resource_path
 from ui.views.library_view import LibraryView
@@ -28,6 +30,7 @@ class AppGUI(QMainWindow):
         self.hotkey_manager = hotkey_manager
         self.config = config
         self._last_timeline_sound_id = None
+        self._active_tab = 0
         self.audio_manager.set_fade_durations(
             self.config.get("fade_in_ms", 150), self.config.get("fade_out_ms", 150)
         )
@@ -43,6 +46,7 @@ class AppGUI(QMainWindow):
         self.timeline_timer.start(100)
 
         self._build_ui()
+        self._rebuild_caches_async()
 
     def _build_ui(self):
         main_widget = QWidget()
@@ -62,13 +66,13 @@ class AppGUI(QMainWindow):
         side_layout.addWidget(title)
         side_layout.addSpacing(30)
 
-        self.btn_lib = QPushButton(" Bibliothèque")
+        self.btn_lib = QPushButton(tr("nav.library"))
         self.btn_lib.setIcon(get_icon("lib.svg"))
         self.btn_lib.setCheckable(True)
         self.btn_lib.setChecked(True)
         self.btn_lib.clicked.connect(lambda: self._switch_tab(0))
 
-        self.btn_set = QPushButton(" Réglages")
+        self.btn_set = QPushButton(tr("nav.settings"))
         self.btn_set.setIcon(get_icon("settings.svg"))
         self.btn_set.setCheckable(True)
         self.btn_set.clicked.connect(lambda: self._switch_tab(1))
@@ -77,13 +81,11 @@ class AppGUI(QMainWindow):
         side_layout.addWidget(self.btn_set)
         side_layout.addStretch()
 
-        btn_stop = QPushButton("  ARRÊT D'URGENCE")
+        btn_stop = QPushButton(tr("panic.button"))
         btn_stop.setObjectName("PanicButton")
-        btn_stop.setIcon(get_icon("stop.svg", "#FFFFFF"))
-        btn_stop.setIconSize(QSize(18, 18))
         btn_stop.setFixedHeight(54)
         btn_stop.setCursor(Qt.PointingHandCursor)
-        btn_stop.setToolTip("Coupe immédiatement tous les sons en cours")
+        btn_stop.setToolTip(tr("panic.tooltip"))
         btn_stop.clicked.connect(self._panic_stop)
         side_layout.addWidget(btn_stop)
 
@@ -117,8 +119,7 @@ class AppGUI(QMainWindow):
         self.player_bar = PlayerBar()
         self.player_bar.seek_requested.connect(self._on_seek)
         content_layout.addWidget(self.player_bar)
-
-        self._rebuild_caches_async()
+        self._switch_tab(self._active_tab)
 
     def _rebuild_caches_async(self):
         """
@@ -154,6 +155,7 @@ class AppGUI(QMainWindow):
         self.library_view.refresh()
 
     def _switch_tab(self, index):
+        self._active_tab = index
         self.stacked_widget.setCurrentIndex(index)
         self.btn_lib.setChecked(index == 0)
         self.btn_set.setChecked(index == 1)
@@ -241,7 +243,7 @@ class AppGUI(QMainWindow):
     def _refresh_panic_hint(self):
         key = self.config.get("panic_hotkey", "None")
         self.lbl_panic_hint.setText(
-            "" if key in (None, "None") else f"ou la touche {key.upper()}"
+            "" if key in (None, "None") else tr("panic.hint", key=key.upper())
         )
 
     def _bind_hotkey(self, sound_id, btn):
@@ -285,8 +287,14 @@ class AppGUI(QMainWindow):
         QTimer.singleShot(0, apply)
 
     def _on_settings_saved(self, config):
+        language_changed = config.get("language", i18n.DEFAULT_LANGUAGE) != i18n.get_language()
         self.config = config
         config_manager.save_config(config)
+        if language_changed:
+            i18n.set_language(config["language"])
+            # Deferred: rebuilding destroys the settings view whose _save()
+            # is still on the stack right now.
+            QTimer.singleShot(0, self._build_ui)
         self.audio_manager.set_fade_durations(
             config.get("fade_in_ms", 150), config.get("fade_out_ms", 150)
         )

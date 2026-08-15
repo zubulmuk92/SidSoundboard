@@ -5,6 +5,7 @@ CONFIG_FILE = "config.json"
 
 DEFAULT_CONFIG = {
     "sounds": [],
+    "language": "fr",
     "panic_hotkey": "None",
     "main_volume": 1.0,
     "primary_output": None,

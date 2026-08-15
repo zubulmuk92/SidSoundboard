@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 from audio_processor import generate_effects_cache
+from i18n import category_key, category_label, tr
 from ui.theme import CATEGORY_COLORS, TEXT_MAIN, TEXT_MUTED
 from ui.widgets.trim_waveform import TrimWaveformWidget
 from ui.widgets.waveform import load_peaks
@@ -35,7 +36,7 @@ class SoundEditDialog(QDialog):
         self.duration = sound_duration(sound.get("filename") or "")
         self._pending_save = False
 
-        self.setWindowTitle(f"Éditer — {sound.get('name', 'Son')}")
+        self.setWindowTitle(tr("editor.title", name=sound.get("name", "")))
         self.setMinimumWidth(560)
         self.render_done.connect(self._on_render_done)
         self._build()
@@ -49,15 +50,15 @@ class SoundEditDialog(QDialog):
 
         header = QFormLayout()
         self.name_input = QLineEdit(self.sound.get("name", ""))
-        header.addRow("Nom :", self.name_input)
+        header.addRow(tr("editor.name"), self.name_input)
 
         self.cb_color = QComboBox()
-        self.cb_color.addItems(list(CATEGORY_COLORS.keys()))
-        self.cb_color.setCurrentText(self.sound.get("color", "Gris"))
-        header.addRow("Catégorie :", self.cb_color)
+        self.cb_color.addItems([category_label(k) for k in CATEGORY_COLORS])
+        self.cb_color.setCurrentText(category_label(self.sound.get("color", "Gris")))
+        header.addRow(tr("editor.category"), self.cb_color)
         layout.addLayout(header)
 
-        cut_lbl = QLabel("Découpe — glissez les poignées pour choisir la partie à garder")
+        cut_lbl = QLabel(tr("editor.trim_hint"))
         cut_lbl.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         layout.addWidget(cut_lbl)
 
@@ -79,34 +80,34 @@ class SoundEditDialog(QDialog):
 
         sliders = QFormLayout()
         sliders.setSpacing(10)
-        self.sl_volume = self._slider(sliders, "Volume :", 0, 400, self.sound.get("volume", 100), "%")
+        self.sl_volume = self._slider(sliders, tr("editor.volume"), 0, 400, self.sound.get("volume", 100), "%")
         self.sl_speed = self._slider(
-            sliders, "Vitesse :", 50, 200, self.sound.get("speed", 100), "%",
-            hint="change aussi la hauteur de la voix",
+            sliders, tr("editor.speed"), 50, 200, self.sound.get("speed", 100), "%",
+            hint=tr("editor.speed_hint"),
         )
-        self.sl_bass = self._slider(sliders, "Bass Booster :", 0, 100, self.sound.get("bass_boost", 0), "%")
-        self.sl_reverb = self._slider(sliders, "Reverb :", 0, 100, self.sound.get("reverb", 0), "%")
+        self.sl_bass = self._slider(sliders, tr("editor.bass"), 0, 100, self.sound.get("bass_boost", 0), "%")
+        self.sl_reverb = self._slider(sliders, tr("editor.reverb"), 0, 100, self.sound.get("reverb", 0), "%")
         self.sl_fade_in = self._slider(
-            sliders, "Fondu d'entrée :", 0, 5000,
+            sliders, tr("editor.fade_in"), 0, 5000,
             self.sound.get("fade_in_ms", self.config.get("fade_in_ms", 150)), " ms",
         )
         self.sl_fade_out = self._slider(
-            sliders, "Fondu de sortie :", 0, 5000,
+            sliders, tr("editor.fade_out"), 0, 5000,
             self.sound.get("fade_out_ms", self.config.get("fade_out_ms", 150)), " ms",
         )
         layout.addLayout(sliders)
 
         buttons = QHBoxLayout()
-        self.btn_preview = QPushButton("APERÇU")
+        self.btn_preview = QPushButton(tr("editor.preview"))
         self.btn_preview.clicked.connect(self._preview)
         buttons.addWidget(self.btn_preview)
         buttons.addStretch()
 
-        btn_cancel = QPushButton("Annuler")
+        btn_cancel = QPushButton(tr("common.cancel"))
         btn_cancel.clicked.connect(self.reject)
         buttons.addWidget(btn_cancel)
 
-        self.btn_save = QPushButton("ENREGISTRER")
+        self.btn_save = QPushButton(tr("editor.save"))
         self.btn_save.setProperty("class", "accent")
         self.btn_save.clicked.connect(self._save)
         buttons.addWidget(self.btn_save)
@@ -141,14 +142,14 @@ class SoundEditDialog(QDialog):
     def _on_trim_changed(self, start_ratio, end_ratio):
         start = start_ratio * self.duration
         end = end_ratio * self.duration
-        self.lbl_trim.setText(f"Garde de {start:.2f}s à {end:.2f}s ({end - start:.2f}s)")
+        self.lbl_trim.setText(tr("editor.trim_range", start=start, end=end, length=end - start))
 
     def _current_values(self):
         start = self.trim_widget.start_ratio * self.duration
         end = self.trim_widget.end_ratio * self.duration
         return {
             "name": self.name_input.text().strip() or self.sound.get("name", "Son"),
-            "color": self.cb_color.currentText(),
+            "color": category_key(self.cb_color.currentText()),
             "volume": self.sl_volume.value(),
             "speed": self.sl_speed.value(),
             "bass_boost": self.sl_bass.value(),
@@ -165,7 +166,7 @@ class SoundEditDialog(QDialog):
         self._pending_save = pending_save
         self.btn_preview.setEnabled(False)
         self.btn_save.setEnabled(False)
-        self.btn_preview.setText("RENDU...")
+        self.btn_preview.setText(tr("editor.rendering"))
 
         draft = dict(self.sound)
         draft.update(self._current_values())
@@ -185,10 +186,10 @@ class SoundEditDialog(QDialog):
     def _on_render_done(self, success, path, error):
         self.btn_preview.setEnabled(True)
         self.btn_save.setEnabled(True)
-        self.btn_preview.setText("APERÇU")
+        self.btn_preview.setText(tr("editor.preview"))
 
         if not success:
-            QMessageBox.critical(self, "Erreur", f"Échec du rendu audio :\n{error}")
+            QMessageBox.critical(self, tr("common.error"), tr("editor.render_failed", error=error))
             return
 
         if self._pending_save:

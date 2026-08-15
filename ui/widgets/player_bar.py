@@ -1,6 +1,7 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 
+from i18n import tr
 from ui.widgets.waveform import WaveformWidget
 
 
@@ -13,7 +14,7 @@ class PlayerBar(QFrame):
         self.setFixedHeight(60)
         layout = QHBoxLayout(self)
 
-        self.lbl_playing = QLabel("Aucun son en cours")
+        self.lbl_playing = QLabel(tr("player.idle"))
         self.lbl_playing.setFixedWidth(250)
         layout.addWidget(self.lbl_playing)
 
@@ -31,9 +32,11 @@ class PlayerBar(QFrame):
 
     def update_progress(self, name, current, duration, peaks, is_paused=False):
         if not name:
-            self.lbl_playing.setText("Aucun son en cours")
+            self.lbl_playing.setText(tr("player.idle"))
         else:
-            self.lbl_playing.setText(f"{'En pause' if is_paused else 'En cours'} : {name}")
+            self.lbl_playing.setText(
+                tr("player.paused" if is_paused else "player.playing", name=name)
+            )
         self.lbl_time_cur.setText(self._format_time(current))
         self.lbl_time_tot.setText(self._format_time(duration))
         if peaks is not None:
