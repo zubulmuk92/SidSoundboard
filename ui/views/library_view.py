@@ -155,6 +155,9 @@ class LibraryView(QWidget):
         sound = next((s for s in self.sounds if s["id"] == sound_id), None)
         if not sound:
             return
+        # Editing re-renders the sound's cache files, which cannot be
+        # overwritten while they are being streamed.
+        self.audio_manager.stop_sound(sound_id)
         dlg = SoundEditDialog(sound, self.config, self.audio_manager, self)
         if dlg.exec() == QDialog.Accepted:
             self._persist()
@@ -177,6 +180,8 @@ class LibraryView(QWidget):
         """
         draft = dict(sound)
         sound_id = sound["id"]
+        # Same reason as _on_edit: free the file before FFmpeg rewrites it.
+        self.audio_manager.stop_sound(sound_id)
 
         def worker():
             try:

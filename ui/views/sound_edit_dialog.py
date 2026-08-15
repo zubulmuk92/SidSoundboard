@@ -168,6 +168,11 @@ class SoundEditDialog(QDialog):
         self.btn_save.setEnabled(False)
         self.btn_preview.setText(tr("editor.rendering"))
 
+        # Any render overwrites a file this dialog may currently be
+        # playing (the sound itself, or an earlier preview). FFmpeg cannot
+        # overwrite a file miniaudio still holds open.
+        self.audio_manager.stop_all()
+
         draft = dict(self.sound)
         draft.update(self._current_values())
 

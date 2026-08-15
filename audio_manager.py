@@ -24,7 +24,7 @@ class AudioManager:
             })
         return outputs
 
-    def _start_playback(self, filepath, device_id, info, seek_offset):
+    def _start_playback(self, filepath, device_id, info, seek_offset, sound_id=None):
         try:
             device = miniaudio.PlaybackDevice(
                 device_id=device_id,
@@ -46,7 +46,7 @@ class AudioManager:
 
             device.start(stream)
 
-            self.active_playbacks.append((device, stream, fade_state))
+            self.active_playbacks.append((device, stream, fade_state, sound_id))
             self._cleanup_playbacks()
             return device, fade_state
         except Exception:
@@ -70,11 +70,11 @@ class AudioManager:
             fade_state1 = None
             if filepath_primary:
                 info = miniaudio.get_file_info(filepath_primary)
-                dev1, fade_state1 = self._start_playback(filepath_primary, primary_id, info, seek_offset)
+                dev1, fade_state1 = self._start_playback(filepath_primary, primary_id, info, seek_offset, sound_id)
 
             if dual_enabled and secondary_id and filepath_secondary:
                 info_sec = miniaudio.get_file_info(filepath_secondary)
-                self._start_playback(filepath_secondary, secondary_id, info_sec, seek_offset)
+                self._start_playback(filepath_secondary, secondary_id, info_sec, seek_offset, sound_id)
 
             if dev1:
                 self.focused_info = {
@@ -144,26 +144,66 @@ class AudioManager:
             "is_paused": fi.get("is_paused", False)
         }
 
+    @staticmethod
+    def _close_entry(entry):
+        """
+        Releases a playback: the device first, then the file stream behind
+        it. Closing the stream matters on Windows — while miniaudio still
+        holds the file open, FFmpeg cannot overwrite it, which is what made
+        editing a sound mid-playback fail.
+        """
+        device, stream = entry[0], entry[1]
+        try:
+            device.close()
+        except Exception:
+            pass
+        try:
+            stream.close()
+        except Exception:
+            pass
+
     def _cleanup_playbacks(self):
         alive = []
-        for device, stream, fade_state in self.active_playbacks:
+        for entry in self.active_playbacks:
             try:
-                if device.running:
-                    alive.append((device, stream, fade_state))
+                if entry[0].running:
+                    alive.append(entry)
                 else:
-                    device.close()
+                    self._close_entry(entry)
             except Exception:
                 pass
         self.active_playbacks = alive
 
     def stop_all(self):
-        for device, stream, fade_state in self.active_playbacks:
-            try:
-                device.close()
-            except Exception:
-                pass
+        for entry in self.active_playbacks:
+            self._close_entry(entry)
         self.active_playbacks.clear()
         self.focused_info = None
+
+    def stop_sound(self, sound_id):
+        """
+        Stops only this sound, leaving anything else playing alone. Returns
+        True if something was actually stopped. Callers use this before
+        re-rendering a sound's cache files, which cannot be overwritten
+        while they are being streamed.
+        """
+        if sound_id is None:
+            return False
+
+        remaining = []
+        stopped = False
+        for entry in self.active_playbacks:
+            if entry[3] == sound_id:
+                self._close_entry(entry)
+                stopped = True
+            else:
+                remaining.append(entry)
+        self.active_playbacks = remaining
+
+        if self.focused_info and self.focused_info.get("sound_id") == sound_id:
+            self.focused_info = None
+            stopped = True
+        return stopped
 
     def toggle_play_pause(self, filepath_primary, filepath_secondary, name, volume=1.0, primary_device_name=None, secondary_device_name=None, dual_enabled=False, sound_id=None):
         if not filepath_primary:
@@ -179,11 +219,8 @@ class AudioManager:
                 prog = self.get_focused_progress()
                 if prog:
                     paused_at = prog["current"]
-                    for device, stream, fade_state in self.active_playbacks:
-                        try:
-                            device.close()
-                        except Exception:
-                            pass
+                    for entry in self.active_playbacks:
+                        self._close_entry(entry)
                     self.active_playbacks.clear()
                     fi["is_paused"] = True
                     fi["paused_at"] = paused_at
@@ -198,18 +235,15 @@ class AudioManager:
 
     def _crossfade_to(self, filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, sound_id):
         outgoing = list(self.active_playbacks)
-        for device, stream, fade_state in outgoing:
-            fade_state.stop_requested = True
+        for entry in outgoing:
+            entry[2].stop_requested = True
 
         self.active_playbacks = []
         self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id)
 
         def close_outgoing():
-            for device, stream, fade_state in outgoing:
-                try:
-                    device.close()
-                except Exception:
-                    pass
+            for entry in outgoing:
+                self._close_entry(entry)
 
         delay = (self.fade_out_ms / 1000.0) + 0.1
         timer = threading.Timer(delay, close_outgoing)
@@ -245,6 +279,10 @@ class FadingStream:
 
     def __next__(self):
         return self._process(next(self.source))
+
+    def close(self):
+        """Forwards to the wrapped generator so the file handle is released."""
+        self.source.close()
 
     def send(self, n_frames):
         return self._process(self.source.send(n_frames))
