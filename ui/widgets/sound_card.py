@@ -8,6 +8,11 @@ from ui.widgets.waveform import WaveformWidget, load_peaks
 
 
 class SoundCard(QFrame):
+    # Wide enough for the category combo to show a full label without
+    # truncating it; the grid derives its column count from this.
+    WIDTH = 360
+    HEIGHT = 130
+
     play_requested = Signal(str)
     edit_requested = Signal(str)
     delete_requested = Signal(str)
@@ -19,7 +24,7 @@ class SoundCard(QFrame):
         super().__init__(parent)
         self.sound = sound
         self.setObjectName("SoundCard")
-        self.setFixedSize(300, 130)
+        self.setFixedSize(self.WIDTH, self.HEIGHT)
         self._playing_state = None
         self._build()
 
@@ -92,7 +97,7 @@ class SoundCard(QFrame):
         cb_color = QComboBox()
         cb_color.addItems([category_label(k) for k in CATEGORY_COLORS])
         cb_color.setCurrentText(category_label(cat))
-        cb_color.setFixedWidth(58)
+        cb_color.setFixedWidth(118)
         # The combo shows a localized label; the config keeps the canonical key.
         cb_color.currentTextChanged.connect(
             lambda c: self.color_changed.emit(self.sound["id"], category_key(c))

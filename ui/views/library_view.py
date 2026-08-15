@@ -27,6 +27,8 @@ class LibraryView(QWidget):
     effects_rendered = Signal(str, str)
     sounds_changed = Signal()
 
+    CARD_SPACING = 15
+
     def __init__(self, config, audio_manager, parent=None):
         super().__init__(parent)
         self.config = config
@@ -74,7 +76,7 @@ class LibraryView(QWidget):
         self.scroll_widget = QWidget()
         self.grid_layout = QGridLayout(self.scroll_widget)
         self.grid_layout.setContentsMargins(0, 0, 0, 0)
-        self.grid_layout.setSpacing(15)
+        self.grid_layout.setSpacing(self.CARD_SPACING)
         self.scroll_area.setWidget(self.scroll_widget)
         layout.addWidget(self.scroll_area)
 
@@ -112,9 +114,11 @@ class LibraryView(QWidget):
             self.cards = {}
             return
 
+        # Only add a column when a whole card genuinely fits: a cramped
+        # two-column grid is worse than a clean single column.
         width = self.scroll_area.viewport().width()
-        card_width = 320
-        cols = max(1, width // (card_width + 15))
+        step = SoundCard.WIDTH + self.CARD_SPACING
+        cols = max(1, (width + self.CARD_SPACING) // step)
 
         self.cards = {}
         for i, sound in enumerate(self.filtered_sounds):
