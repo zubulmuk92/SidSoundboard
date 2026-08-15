@@ -4,8 +4,8 @@ import keyboard
 from PySide6.QtCore import Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget,
-    QVBoxLayout, QWidget
+    QComboBox, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow,
+    QPushButton, QStackedWidget, QVBoxLayout, QWidget
 )
 
 import config_manager
@@ -15,8 +15,11 @@ from i18n import tr
 import paths
 from audio_processor import ensure_caches, resolve_playback_file, resolve_secondary_file
 from ui.theme import QSS, TEXT_MAIN, get_icon, resource_path
+import errors
 from ui.views.library_view import LibraryView
+from ui.views.scene_view import SceneView
 from ui.views.settings_view import SettingsView
+from ui.views.welcome_view import WelcomeView
 from ui.widgets.player_bar import PlayerBar
 from ui.widgets.waveform import load_peaks
 
@@ -28,6 +31,7 @@ class AppGUI(QMainWindow):
         super().__init__()
         self._cache_rebuild_running = False
         self.caches_ready.connect(self._on_caches_ready)
+        errors.reporter.reported.connect(self._on_error_reported)
         self.audio_manager = audio_manager
         self.hotkey_manager = hotkey_manager
         self.config = config
@@ -68,19 +72,39 @@ class AppGUI(QMainWindow):
         side_layout.addWidget(title)
         side_layout.addSpacing(30)
 
-        self.btn_lib = QPushButton(tr("nav.library"))
-        self.btn_lib.setIcon(get_icon("lib.svg"))
-        self.btn_lib.setCheckable(True)
-        self.btn_lib.setChecked(True)
-        self.btn_lib.clicked.connect(lambda: self._switch_tab(0))
+        # The profile selector sits above navigation: switching profile is a
+        # change of context for the whole app, not a setting among others.
+        profile_row = QWidget()
+        profile_layout = QHBoxLayout(profile_row)
+        profile_layout.setContentsMargins(20, 0, 20, 0)
+        profile_layout.setSpacing(6)
 
-        self.btn_set = QPushButton(tr("nav.settings"))
-        self.btn_set.setIcon(get_icon("settings.svg"))
-        self.btn_set.setCheckable(True)
-        self.btn_set.clicked.connect(lambda: self._switch_tab(1))
+        self.cb_profile = QComboBox()
+        self.cb_profile.currentIndexChanged.connect(self._on_profile_selected)
+        profile_layout.addWidget(self.cb_profile)
 
-        side_layout.addWidget(self.btn_lib)
-        side_layout.addWidget(self.btn_set)
+        btn_new_profile = QPushButton("+")
+        btn_new_profile.setFixedWidth(30)
+        btn_new_profile.setToolTip(tr("profile.new"))
+        btn_new_profile.clicked.connect(self._create_profile)
+        profile_layout.addWidget(btn_new_profile)
+        side_layout.addWidget(profile_row)
+        side_layout.addSpacing(20)
+
+        self.nav_buttons = []
+        for index, (key, icon) in enumerate((
+            ("nav.scene", "play.svg"),
+            ("nav.library", "lib.svg"),
+            ("nav.settings", "settings.svg"),
+            ("nav.help", "add.svg"),
+        )):
+            button = QPushButton(tr(key))
+            button.setIcon(get_icon(icon))
+            button.setCheckable(True)
+            button.clicked.connect(lambda _=False, i=index: self._switch_tab(i))
+            side_layout.addWidget(button)
+            self.nav_buttons.append(button)
+
         side_layout.addStretch()
 
         btn_stop = QPushButton(tr("panic.button"))
@@ -107,6 +131,10 @@ class AppGUI(QMainWindow):
         self.stacked_widget = QStackedWidget()
         content_layout.addWidget(self.stacked_widget)
 
+        self.scene_view = SceneView(self.config)
+        self.scene_view.sound_triggered.connect(self._on_scene_trigger)
+        self.stacked_widget.addWidget(self.scene_view)
+
         self.library_view = LibraryView(self.config, self.audio_manager)
         self.library_view.sound_played.connect(self._play_sound)
         self.library_view.hotkey_bind_requested.connect(self._bind_hotkey)
@@ -118,9 +146,21 @@ class AppGUI(QMainWindow):
         )
         self.stacked_widget.addWidget(self.settings_view)
 
+        self.welcome_view = WelcomeView(self.audio_manager, self.config)
+        self.welcome_view.open_settings.connect(lambda: self._switch_tab(2))
+        self.welcome_view.open_library.connect(lambda: self._switch_tab(1))
+        self.stacked_widget.addWidget(self.welcome_view)
+
+        self.error_banner = QLabel()
+        self.error_banner.setObjectName("ErrorBanner")
+        self.error_banner.setWordWrap(True)
+        self.error_banner.hide()
+        content_layout.addWidget(self.error_banner)
+
         self.player_bar = PlayerBar()
         self.player_bar.seek_requested.connect(self._on_seek)
         content_layout.addWidget(self.player_bar)
+        self._refresh_profile_combo()
         self._switch_tab(self._active_tab)
 
     def _rebuild_caches_async(self):
@@ -156,11 +196,61 @@ class AppGUI(QMainWindow):
         config_manager.save_config(self.config)
         self.library_view.refresh()
 
+    def _refresh_profile_combo(self):
+        self.cb_profile.blockSignals(True)
+        self.cb_profile.clear()
+        for profile in self.config["profiles"]:
+            self.cb_profile.addItem(profile["name"], profile["id"])
+        active = profiles.active_profile(self.config)["id"]
+        index = self.cb_profile.findData(active)
+        if index >= 0:
+            self.cb_profile.setCurrentIndex(index)
+        self.cb_profile.blockSignals(False)
+
+    def _on_profile_selected(self, index):
+        profile_id = self.cb_profile.itemData(index)
+        if not profile_id or profile_id == self.config.get("active_profile"):
+            return
+        profiles.set_active(self.config, profile_id)
+        config_manager.save_config(self.config)
+        self.audio_manager.stop_all()
+        self.hotkey_manager.load_hotkeys(self.config)
+        self.library_view.refresh()
+        self.scene_view.refresh()
+
+    def _create_profile(self):
+        name, ok = QInputDialog.getText(self, tr("profile.new"), tr("profile.new_prompt"))
+        if not ok or not name.strip():
+            return
+        created = profiles.create_profile(self.config, name.strip())
+        profiles.set_active(self.config, created["id"])
+        config_manager.save_config(self.config)
+        self._refresh_profile_combo()
+        self.hotkey_manager.load_hotkeys(self.config)
+        self.library_view.refresh()
+        self.scene_view.refresh()
+
+    def _on_scene_trigger(self, sound_id):
+        for sound in profiles.active_sounds(self.config):
+            if sound["id"] == sound_id:
+                self._play_sound(sound)
+                return
+
+    @Slot(str)
+    def _on_error_reported(self, message):
+        self.error_banner.setText(message)
+        self.error_banner.show()
+        QTimer.singleShot(8000, self.error_banner.hide)
+
     def _switch_tab(self, index):
         self._active_tab = index
         self.stacked_widget.setCurrentIndex(index)
-        self.btn_lib.setChecked(index == 0)
-        self.btn_set.setChecked(index == 1)
+        for position, button in enumerate(self.nav_buttons):
+            button.setChecked(position == index)
+        if index == 0:
+            self.scene_view.refresh()
+        elif index == 3:
+            self.welcome_view.refresh()
 
     def _play_sound(self, sound):
         playback_file = resolve_playback_file(sound)
@@ -204,6 +294,7 @@ class AppGUI(QMainWindow):
         if not prog:
             self._release_card(self._last_timeline_sound_id)
             self._last_timeline_sound_id = None
+            self.scene_view.set_playing(None, 0.0)
             self.player_bar.update_progress("", 0, 0, None)
             return
 
@@ -225,6 +316,8 @@ class AppGUI(QMainWindow):
             # else: sound not currently rendered (filtered/scrolled out of view) -
             # leave peaks as None and let the player bar keep its last-known peaks.
 
+        ratio = prog["current"] / prog["duration"] if prog["duration"] > 0 else 0.0
+        self.scene_view.set_playing(sound_id, ratio)
         self.player_bar.update_progress(
             prog["name"], prog["current"], prog["duration"], peaks, prog["is_paused"]
         )

@@ -157,6 +157,15 @@ QSlider::handle:horizontal {{ background: {ACCENT}; width: 14px; margin-top: -4p
 
 #PlayerBar {{ background-color: {BG_PANEL}; border: 1px solid {EDGE}; border-radius: 8px; }}
 
+#ErrorBanner {{
+    background-color: {BG_PANEL};
+    color: {DANGER};
+    border: 1px solid {DANGER};
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-weight: 600;
+}}
+
 #EmptyState {{ color: {TEXT_MUTED}; font-size: 14px; }}
 
 /* The one warm thing in the app, shaped like the industrial mushroom
