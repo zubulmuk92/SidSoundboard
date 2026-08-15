@@ -32,8 +32,8 @@ const cartes = [
 
 export function Editeur() {
   return (
-    <section id="editeur" className="relative z-3 px-6 py-[clamp(72px,10vw,128px)]">
-      <div className="mx-auto max-w-[1120px]">
+    <section id="editeur" className="section">
+      <div className="conteneur">
         <p className="eyebrow reveal">Dans la boîte</p>
         <h2 className="titre-section reveal">Chaque son se règle, se coupe et se garde intact.</h2>
 

@@ -8,8 +8,8 @@ const nav = [
 
 export function PiedDePage() {
   return (
-    <footer className="relative z-3 border-t border-ambre/20 bg-[#0A0705] px-6 pt-10 pb-14">
-      <div className="mx-auto grid max-w-[1120px] gap-4.5">
+    <footer className="relative z-3 border-t border-ambre/20 bg-[#0A0705] pt-10 pb-14">
+      <div className="conteneur grid gap-4.5">
         <p className="font-mono text-[11.5px] tracking-[0.1em] text-ambre uppercase">
           Python · PySide6 · miniaudio · FFmpeg
         </p>

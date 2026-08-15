@@ -21,8 +21,8 @@ const chiffres = [
 
 export function Moteur() {
   return (
-    <section id="moteur" className="relative z-3 px-6 py-[clamp(72px,10vw,128px)]">
-      <div className="mx-auto max-w-[1120px]">
+    <section id="moteur" className="section">
+      <div className="conteneur">
         <p className="eyebrow reveal">Le moteur</p>
         <h2 className="titre-section reveal">Rien à calculer au moment où ça joue.</h2>
         <p className="chapo reveal">

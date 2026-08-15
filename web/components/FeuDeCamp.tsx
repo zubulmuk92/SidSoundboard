@@ -4,13 +4,13 @@ import { asset, liens } from "@/lib/site";
 /** Appel à l'action final : le seul endroit chaud de la page. */
 export function FeuDeCamp() {
   return (
-    <section className="relative z-3 overflow-clip bg-[linear-gradient(180deg,var(--color-nuit)_0%,#150E0A_100%)] px-6 py-[clamp(72px,11vw,128px)] text-center">
+    <section className="section overflow-clip bg-[linear-gradient(180deg,var(--color-nuit)_0%,#150E0A_100%)] text-center">
       <div
         aria-hidden="true"
         className="anim-braise absolute bottom-[-40%] left-1/2 aspect-square w-[min(900px,110%)] -translate-x-1/2 bg-[radial-gradient(circle,rgb(255_138_61/0.3)_0%,rgb(255_138_61/0.07)_40%,transparent_68%)]"
       />
 
-      <div className="relative z-10 mx-auto max-w-[1120px]">
+      <div className="conteneur relative z-10">
         <Image
           src={asset("/sid.png")}
           alt=""

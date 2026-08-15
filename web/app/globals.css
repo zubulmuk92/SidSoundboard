@@ -22,6 +22,10 @@
   --font-display: var(--police-display), "Haettenschweiler", "Arial Narrow", sans-serif;
   --font-sans: var(--police-sans), system-ui, sans-serif;
   --font-mono: var(--police-mono), ui-monospace, monospace;
+
+  /* Une seule source de vérité pour la largeur et les gouttières. */
+  --largeur-page: 1120px;
+  --gouttiere: 24px;
 }
 
 @layer base {
@@ -55,6 +59,26 @@
 }
 
 @layer components {
+  /* ── Gabarit : une largeur, un rythme vertical ─────────── */
+  .conteneur {
+    width: 100%;
+    max-width: calc(var(--largeur-page) + 2 * var(--gouttiere));
+    margin-inline: auto;
+    padding-inline: var(--gouttiere);
+  }
+
+  .section {
+    position: relative;
+    z-index: 3;
+    padding-block: clamp(72px, 9vw, 120px);
+  }
+
+  /* Une bande légèrement plus claire, une section sur deux. */
+  .section-alt {
+    background-color: var(--color-nuit-2);
+    border-block: 1px solid rgb(127 231 242 / 0.08);
+  }
+
   /* ── Titres et intertitres ─────────────────────────────── */
   .eyebrow {
     display: flex;

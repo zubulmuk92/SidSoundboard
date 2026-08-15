@@ -123,13 +123,7 @@ export function Soundboard({ sid }: { sid: string }) {
   }, []);
 
   return (
-    <div className="relative overflow-hidden rounded-[18px] border border-gel/15 bg-[linear-gradient(160deg,rgb(20_49_72/0.92),rgb(10_26_40/0.92))] p-[22px] shadow-[0_40px_80px_-40px_#000,inset_0_1px_0_rgb(255_255_255/0.1)] backdrop-blur-[6px]">
-      {/* reflet oblique sur toute la vitre */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-[18px] bg-[linear-gradient(115deg,transparent_42%,rgb(255_255_255/0.07)_50%,transparent_58%)]"
-      />
-
+    <div className="relative overflow-hidden rounded-2xl border border-gel/15 bg-[linear-gradient(160deg,rgb(20_49_72/0.92),rgb(10_26_40/0.92))] p-5 shadow-[0_40px_80px_-40px_#000,inset_0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-[6px]">
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <h2 className="font-display text-[22px] font-bold tracking-[0.04em] uppercase">Essayez-la ici</h2>
         <p className="font-mono text-[11.5px] text-brume">

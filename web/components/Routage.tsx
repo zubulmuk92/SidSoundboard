@@ -16,11 +16,8 @@ function Fleches({ suffixe }: { suffixe: string }) {
 
 export function Routage() {
   return (
-    <section
-      id="routage"
-      className="relative z-3 bg-[linear-gradient(180deg,var(--color-nuit)_0%,#081925_45%,var(--color-nuit)_100%)] px-6 py-[clamp(72px,10vw,128px)]"
-    >
-      <div className="mx-auto max-w-[1120px]">
+    <section id="routage" className="section section-alt">
+      <div className="conteneur">
         <p className="eyebrow reveal">Double sortie</p>
         <h2 className="titre-section reveal">
           Vous l&apos;entendez doucement. Vos potes le prennent en pleine face.
