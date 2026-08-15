@@ -54,6 +54,12 @@ renommer et supprimer se font dans **Réglages → Scènes**.
 dans `%APPDATA%\SidSoundboard`. L'application retrouve donc sa
 bibliothèque quel que soit le dossier depuis lequel on la lance.
 
+## 🔧 Reconstruire l'exécutable
+`bin/` est exclu du dépôt : le binaire FFmpeg pèse 99 Mo. Pour reconstruire
+depuis un clone, placez `ffmpeg.exe` dans `bin/win32/`, puis lancez
+`python -m PyInstaller --noconfirm --clean SidSoundboard.spec`.
+Les licences des composants embarqués sont dans [THIRD-PARTY.md](THIRD-PARTY.md).
+
 ## 📦 Installation & Utilisation
 Le projet est packagé en un seul fichier `.exe` autonome.
 1. Lancez `SidSoundboard.exe` (situé dans le dossier `dist/`).

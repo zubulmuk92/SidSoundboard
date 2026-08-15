@@ -24,7 +24,9 @@ SOURCE = os.path.join(ROOT, "logo.png")
 # taskbar, 256 in Explorer's large view. Shipping them all avoids Windows
 # rescaling a wrong-sized frame into something blurry.
 ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
-PNG_SIZE = 512
+# The tray consumes this at 64px; 256 leaves room for HiDPI without
+# carrying a quarter-megabyte icon in the repo and the exe.
+PNG_SIZE = 256
 
 
 def square(image):
