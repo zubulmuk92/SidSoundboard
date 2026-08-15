@@ -1,9 +1,10 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QMimeData, Qt, Signal
+from PySide6.QtGui import QDrag
 from PySide6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout
 
 from audio_processor import resolve_playback_file
 from i18n import category_key, category_label, tr
-from ui.theme import ACCENT_TEXT, BG_APP, CATEGORY_COLORS, TEXT_MAIN, TEXT_MUTED, get_icon
+from ui.theme import ACCENT_TEXT, BG_APP, CATEGORY_COLORS, DANGER, TEXT_MAIN, TEXT_MUTED, get_icon
 from ui.widgets.waveform import WaveformWidget, load_peaks
 
 
@@ -26,6 +27,7 @@ class SoundCard(QFrame):
         self.setObjectName("SoundCard")
         self.setFixedSize(self.WIDTH, self.HEIGHT)
         self._playing_state = None
+        self._drag_origin = None
         self._build()
 
     def _build(self):
@@ -105,6 +107,44 @@ class SoundCard(QFrame):
         bot_row.addWidget(cb_color)
 
         layout.addLayout(bot_row)
+
+    MIME_TYPE = "application/x-sidsoundboard-sound"
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_origin = event.position().toPoint()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Starts a reorder drag. Buttons consume their own presses, so this
+        only fires when the drag began on the card body itself."""
+        if self._drag_origin is None or not (event.buttons() & Qt.LeftButton):
+            return
+        from PySide6.QtWidgets import QApplication
+        moved = (event.position().toPoint() - self._drag_origin).manhattanLength()
+        if moved < QApplication.startDragDistance():
+            return
+
+        payload = QMimeData()
+        payload.setData(self.MIME_TYPE, self.sound["id"].encode("utf-8"))
+        drag = QDrag(self)
+        drag.setMimeData(payload)
+        drag.setPixmap(self.grab())
+        drag.setHotSpot(self._drag_origin)
+        self._drag_origin = None
+        drag.exec(Qt.MoveAction)
+
+    def set_hotkey_conflict(self, other_names):
+        """Marks the key as claimed by other sounds. Never blocks the
+        binding — it says so, it does not forbid it."""
+        if other_names:
+            self.hk_btn.setStyleSheet(
+                f"color: {DANGER}; font-size: 11px; background: {BG_APP};"
+                f" padding: 2px 6px; border-radius: 4px; border: 1px solid {DANGER};"
+            )
+            self.hk_btn.setToolTip(tr("card.hotkey_conflict", names=", ".join(other_names)))
+        else:
+            self.hk_btn.setToolTip("")
 
     def set_playback_progress(self, ratio):
         self.waveform.set_progress(ratio)

@@ -10,16 +10,43 @@ from PySide6.QtWidgets import (
 )
 
 import config_manager
+import errors
 import paths
 import profiles
-from i18n import tr
+from hotkey_manager import HotkeyManager
+from i18n import category_label, tr
 from audio_processor import (
     generate_and_save_peaks, generate_effects_cache, normalize_and_import_audio
 )
-from ui.theme import get_icon
+from ui.theme import CATEGORY_COLORS, get_icon
 from ui.views.sound_edit_dialog import SoundEditDialog
+from ui.views.youtube_dialog import YoutubeDialog
 from ui.widgets.sound_card import SoundCard
-from yt_downloader import download_youtube_audio_async
+
+
+class _DropGrid(QWidget):
+    """The grid container, accepting a card dropped onto it and reporting
+    where it landed."""
+
+    def __init__(self, on_drop, parent=None):
+        super().__init__(parent)
+        self._on_drop = on_drop
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat(SoundCard.MIME_TYPE):
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasFormat(SoundCard.MIME_TYPE):
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        data = event.mimeData().data(SoundCard.MIME_TYPE)
+        if not data:
+            return
+        self._on_drop(bytes(data).decode("utf-8"), event.position().toPoint())
+        event.acceptProposedAction()
 
 
 class LibraryView(QWidget):
@@ -38,10 +65,11 @@ class LibraryView(QWidget):
         self.sounds = profiles.active_sounds(self.config)
         self.filtered_sounds = list(self.sounds)
         self.cards = {}
+        self.category_filter = None
         self._build()
         self.add_sound_done.connect(self._on_add_sound_done)
         self.effects_rendered.connect(self._on_effects_rendered)
-        self._rebuild_grid()
+        self._filter_sounds()
 
     def _build(self):
         layout = QVBoxLayout(self)
@@ -71,11 +99,15 @@ class LibraryView(QWidget):
         topbar.addWidget(btn_yt)
 
         layout.addLayout(topbar)
+
+        self.filter_row = QHBoxLayout()
+        self.filter_row.setSpacing(6)
+        layout.addLayout(self.filter_row)
         layout.addSpacing(10)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_widget = QWidget()
+        self.scroll_widget = _DropGrid(self._on_card_dropped)
         self.grid_layout = QGridLayout(self.scroll_widget)
         self.grid_layout.setContentsMargins(0, 0, 0, 0)
         self.grid_layout.setSpacing(self.CARD_SPACING)
@@ -90,6 +122,64 @@ class LibraryView(QWidget):
         super().resizeEvent(event)
         self.resize_timer.start(150)
 
+    def _rebuild_filters(self):
+        """One chip per category actually in use — an empty category is not
+        a filter worth offering."""
+        while self.filter_row.count():
+            item = self.filter_row.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        used = [c for c in CATEGORY_COLORS if any(
+            s.get("color", "Gris") == c for s in self.sounds)]
+        if not used:
+            return
+
+        for key in [None] + used:
+            label = tr("library.filter_all") if key is None else category_label(key)
+            chip = QPushButton(label)
+            chip.setCheckable(True)
+            chip.setChecked(self.category_filter == key)
+            chip.setFixedHeight(26)
+            if key is not None:
+                chip.setStyleSheet(f"border: 1px solid {CATEGORY_COLORS[key]};")
+            chip.clicked.connect(lambda _=False, k=key: self._set_category_filter(k))
+            self.filter_row.addWidget(chip)
+        self.filter_row.addStretch()
+
+    def _set_category_filter(self, key):
+        self.category_filter = None if key == self.category_filter else key
+        self._filter_sounds()
+
+    def _card_at(self, position):
+        for sound_id, card in self.cards.items():
+            if card.geometry().contains(position):
+                return sound_id
+        return None
+
+    def move_sound(self, sound_id, target_id):
+        """
+        Puts `sound_id` where `target_id` currently sits. The list order is
+        the displayed order, in the Library and in Scene alike. Returns True
+        if anything moved.
+        """
+        if not target_id or target_id == sound_id:
+            return False
+
+        source = next((s for s in self.sounds if s["id"] == sound_id), None)
+        if source is None or not any(s["id"] == target_id for s in self.sounds):
+            return False
+
+        self.sounds.remove(source)
+        target_index = next(i for i, s in enumerate(self.sounds) if s["id"] == target_id)
+        self.sounds.insert(target_index, source)
+        self._persist()
+        self.refresh()
+        return True
+
+    def _on_card_dropped(self, sound_id, position):
+        self.move_sound(sound_id, self._card_at(position))
+
     def refresh(self):
         self.sounds = profiles.active_sounds(self.config)
         self._filter_sounds()
@@ -98,10 +188,13 @@ class LibraryView(QWidget):
         term = self.search_input.text().lower()
         self.filtered_sounds = [
             s for s in self.sounds
-            if term in s.get("name", "").lower()
-            or term in (s.get("hotkey") or "").lower()
-            or term in (s.get("color") or "").lower()
+            if (self.category_filter is None
+                or s.get("color", "Gris") == self.category_filter)
+            and (term in s.get("name", "").lower()
+                 or term in (s.get("hotkey") or "").lower()
+                 or term in (s.get("color") or "").lower())
         ]
+        self._rebuild_filters()
         self._rebuild_grid()
 
     def _rebuild_grid(self):
@@ -134,6 +227,15 @@ class LibraryView(QWidget):
             card.color_changed.connect(self._on_color_changed)
             self.cards[sound["id"]] = card
             self.grid_layout.addWidget(card, row, col)
+
+        conflicts = HotkeyManager.find_conflicts(self.sounds)
+        for hotkey, clashing in conflicts.items():
+            for sound in clashing:
+                card = self.cards.get(sound["id"])
+                if card:
+                    card.set_hotkey_conflict(
+                        [s.get("name", "") for s in clashing if s["id"] != sound["id"]]
+                    )
 
         self.grid_layout.setRowStretch(self.grid_layout.rowCount(), 1)
 
@@ -188,8 +290,9 @@ class LibraryView(QWidget):
         def worker():
             try:
                 path = generate_effects_cache(draft, paths.downloads_dir())
-            except Exception:
+            except Exception as exc:
                 path = ""
+                errors.report(tr("library.import_failed"), exc)
             self.effects_rendered.emit(sound_id, path)
 
         threading.Thread(target=worker, daemon=True).start()
@@ -248,8 +351,11 @@ class LibraryView(QWidget):
             pass
         try:
             sound["cached_effects_file"] = generate_effects_cache(sound, paths.downloads_dir())
-        except Exception:
+        except Exception as exc:
+            # Swallowing this used to leave a sound that silently ignored its
+            # own settings, with no way for the user to know why.
             sound["cached_effects_file"] = None
+            errors.report(tr("library.import_failed"), exc)
         return sound
 
     def add_sound(self):
@@ -292,65 +398,13 @@ class LibraryView(QWidget):
             QMessageBox.critical(self, tr("common.error"), tr("library.import_failed"))
 
     def download_youtube(self):
-        dlg = QDialog(self)
-        dlg.setWindowTitle(tr("yt.title"))
-        dlg.setFixedSize(400, 200)
-
-        layout = QVBoxLayout(dlg)
-        url_input = QLineEdit()
-        url_input.setPlaceholderText(tr("yt.url"))
-        layout.addWidget(url_input)
-
-        title_input = QLineEdit()
-        title_input.setPlaceholderText(tr("yt.name"))
-        layout.addWidget(title_input)
-
-        pb = QProgressBar()
-        pb.setValue(0)
-        layout.addWidget(pb)
-
-        btn_dl = QPushButton(tr("yt.download"))
-        btn_dl.setProperty("class", "accent")
-        layout.addWidget(btn_dl)
-
-        class YTSignals(QObject):
-            progress = Signal(int)
-            done = Signal(bool, list, str)
-
-        sigs = YTSignals()
-        sigs.progress.connect(pb.setValue)
-
-        def start_dl():
-            url = url_input.text().strip()
-            if not url:
-                return
-            btn_dl.setEnabled(False)
-
-            def prog_cb(pct_str, curr, tot, t):
-                try:
-                    pct = float(pct_str.replace("%", "").strip())
-                    sigs.progress.emit(int(pct))
-                except ValueError:
-                    pass
-
-            def done_cb(succ, res, err):
-                sigs.done.emit(succ, res or [], err)
-
-            download_youtube_audio_async(url, paths.downloads_dir(), done_cb, prog_cb)
-
-        def finish(succ, res, err):
-            dlg.accept()
-            if succ and res:
-                for filepath, yt_title in res:
-                    sid = str(uuid.uuid4())[:8]
-                    self.sounds.insert(0, self._new_sound(
-                        sid, title_input.text() or yt_title, filepath, "Musiques", self.config
-                    ))
-                self._persist()
-                self.refresh()
-            else:
-                QMessageBox.critical(self, tr("common.error"), tr("yt.failed", error=err))
-
-        sigs.done.connect(finish)
-        btn_dl.clicked.connect(start_dl)
-        dlg.exec()
+        dialog = YoutubeDialog(self)
+        if dialog.exec() != QDialog.Accepted:
+            return
+        for filepath, yt_title in dialog.results:
+            sid = str(uuid.uuid4())[:8]
+            self.sounds.insert(0, self._new_sound(
+                sid, dialog.chosen_name() or yt_title, filepath, "Musiques", self.config
+            ))
+        self._persist()
+        self.refresh()

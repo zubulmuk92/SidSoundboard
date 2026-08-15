@@ -86,6 +86,23 @@ class SettingsView(QWidget):
         form_layout.addWidget(vol_row, row, 1)
         row += 1
 
+        self.sl_master_volume = QSlider(Qt.Horizontal)
+        self.sl_master_volume.setRange(0, 200)
+        self.sl_master_volume.setValue(self.config.get("master_volume", 100))
+        self.lbl_master_volume = QLabel(f"{self.sl_master_volume.value()}%")
+        self.lbl_master_volume.setFixedWidth(45)
+        self.sl_master_volume.valueChanged.connect(
+            lambda v: self.lbl_master_volume.setText(f"{v}%")
+        )
+        master_row = QWidget()
+        master_layout = QHBoxLayout(master_row)
+        master_layout.setContentsMargins(0, 0, 0, 0)
+        master_layout.addWidget(self.sl_master_volume)
+        master_layout.addWidget(self.lbl_master_volume)
+        form_layout.addWidget(QLabel(tr("settings.master_volume")), row, 0)
+        form_layout.addWidget(master_row, row, 1)
+        row += 1
+
         self.chk_solo = QCheckBox(tr("settings.solo"))
         self.chk_solo.setChecked(self.config.get("mode_solo", False))
         form_layout.addWidget(self.chk_solo, row, 0)
@@ -134,6 +151,7 @@ class SettingsView(QWidget):
         self.config["dual_output_enabled"] = self.chk_dual.isChecked()
         self.config["secondary_output"] = self.cb_second_device.currentText()
         self.config["global_secondary_volume"] = self.sl_secondary_volume.value()
+        self.config["master_volume"] = self.sl_master_volume.value()
         self.config["mode_solo"] = self.chk_solo.isChecked()
         self.config["fade_in_ms"] = self.spin_fade_in.value()
         self.config["fade_out_ms"] = self.spin_fade_out.value()
