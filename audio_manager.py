@@ -1,3 +1,4 @@
+import array
 import miniaudio
 import time
 
@@ -182,3 +183,83 @@ class AudioManager:
         # Son différent -> on coupe tout et on lance
         self.stop_all()
         self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id)
+
+
+class FadeState:
+    """Shared trigger object: set stop_requested to start an early fade-out."""
+    def __init__(self):
+        self.stop_requested = False
+        self.finished = False
+
+
+class FadingStream:
+    """
+    Wraps a miniaudio.stream_file generator. Applies a linear gain ramp
+    during fade-in (first fade_in_ms), fade-out (last fade_out_ms of a
+    known-duration stream, via total_frames), or a forced fade-out
+    (triggered externally via fade_state.stop_requested, e.g. for a
+    crossfade). Outside those windows, chunks pass through untouched —
+    zero extra cost in steady-state playback.
+    """
+    def __init__(self, source, sample_rate, nchannels, fade_in_ms, fade_out_ms, total_frames, fade_state):
+        self.source = source
+        self.nchannels = nchannels
+        self.fade_in_frames = int(sample_rate * fade_in_ms / 1000)
+        self.fade_out_frames = int(sample_rate * fade_out_ms / 1000)
+        self.total_frames = total_frames
+        self.fade_state = fade_state
+        self.frame_pos = 0
+        self.forced_fade_start = None
+
+    def __next__(self):
+        return self._process(next(self.source))
+
+    def send(self, n_frames):
+        return self._process(self.source.send(n_frames))
+
+    def _process(self, chunk):
+        n = len(chunk) // self.nchannels
+        if n == 0:
+            return chunk
+
+        if self.fade_state.stop_requested and self.forced_fade_start is None:
+            self.forced_fade_start = self.frame_pos
+
+        needs_processing = False
+        if self.fade_in_frames > 0 and self.frame_pos < self.fade_in_frames:
+            needs_processing = True
+        if self.forced_fade_start is not None:
+            needs_processing = True
+        elif self.fade_out_frames > 0 and self.total_frames > 0 and (self.frame_pos + n) > self.total_frames - self.fade_out_frames:
+            needs_processing = True
+
+        if not needs_processing:
+            self.frame_pos += n
+            return chunk
+
+        out = array.array(chunk.typecode, chunk)
+        for i in range(n):
+            pos = self.frame_pos + i
+            gain = 1.0
+            if self.fade_in_frames > 0 and pos < self.fade_in_frames:
+                gain = min(gain, pos / self.fade_in_frames)
+            if self.forced_fade_start is not None:
+                elapsed = pos - self.forced_fade_start
+                if self.fade_out_frames > 0:
+                    gain = min(gain, max(0.0, 1.0 - elapsed / self.fade_out_frames))
+                else:
+                    gain = 0.0
+            elif self.fade_out_frames > 0 and self.total_frames > 0:
+                remaining = self.total_frames - pos
+                if remaining < self.fade_out_frames:
+                    gain = min(gain, max(0.0, remaining / self.fade_out_frames))
+            if gain < 1.0:
+                base = i * self.nchannels
+                for c in range(self.nchannels):
+                    out[base + c] = int(out[base + c] * gain)
+
+        if self.forced_fade_start is not None and (self.frame_pos + n - self.forced_fade_start) >= self.fade_out_frames:
+            self.fade_state.finished = True
+
+        self.frame_pos += n
+        return out
