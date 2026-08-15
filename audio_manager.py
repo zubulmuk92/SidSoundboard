@@ -58,8 +58,14 @@ class AudioManager:
                 }
                 
         except Exception as e:
-            import tkinter.messagebox as messagebox
-            messagebox.showerror("Erreur Audio", f"Impossible de jouer le son :\n{str(e)}")
+            from PySide6.QtWidgets import QMessageBox, QApplication
+            # We must use a queued call or just direct if in main thread
+            # To avoid thread issues, we just print for now
+            print(f"Erreur Audio: {str(e)}")
+            try:
+                QMessageBox.critical(None, "Erreur Audio", f"Impossible de jouer le son :\n{str(e)}")
+            except:
+                pass
 
     def _start_playback(self, filepath, device_id, info, seek_offset):
         try:

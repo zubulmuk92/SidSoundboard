@@ -1,5 +1,5 @@
 import yt_dlp
-import static_ffmpeg
+import sys
 import os
 import threading
 
@@ -9,8 +9,6 @@ def download_youtube_audio_async(url, output_dir, callback, progress_callback):
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
                 
-            static_ffmpeg.add_paths()
-            
             def yt_progress_hook(d):
                 if d['status'] == 'downloading':
                     percent_str = d.get('_percent_str', '0%').strip()
@@ -26,11 +24,17 @@ def download_youtube_audio_async(url, output_dir, callback, progress_callback):
                     
                     progress_callback(percent_str, p_index, p_count, title)
 
+            if hasattr(sys, '_MEIPASS'):
+                ffmpeg_loc = os.path.join(sys._MEIPASS, 'bin', 'win32')
+            else:
+                ffmpeg_loc = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'win32')
+
             ydl_opts = {
                 'format': 'bestaudio/best',
                 'outtmpl': os.path.join(output_dir, '%(title)s.%(ext)s'),
                 'quiet': True,
                 'no_warnings': True,
+                'ffmpeg_location': ffmpeg_loc,
                 'progress_hooks': [yt_progress_hook]
             }
             
