@@ -50,16 +50,16 @@ export function Moteur() {
             </ul>
           </article>
 
-          <article className="panneau border-ambre/35 bg-[rgb(30_22_16/0.4)] p-6.5">
+          <article className="panneau border-azur/35 bg-[rgb(10_30_48/0.5)] p-6.5">
             <h3 className="font-display text-[26px] font-black tracking-[0.02em] uppercase">SidSoundboard</h3>
-            <p className="mt-1 mb-5 font-mono text-[11px] tracking-[0.14em] text-ambre uppercase">
+            <p className="mt-1 mb-5 font-mono text-[11px] tracking-[0.14em] text-azur uppercase">
               Rendu pré-calculé
             </p>
             <ul>
               {sid.map((t) => (
                 <li
                   key={t}
-                  className="relative border-t border-white/5 py-2.5 pl-6.5 text-[15px] before:absolute before:top-2.5 before:left-0 before:font-mono before:text-ambre before:content-['→']"
+                  className="relative border-t border-white/5 py-2.5 pl-6.5 text-[15px] before:absolute before:top-2.5 before:left-0 before:font-mono before:text-azur before:content-['→']"
                 >
                   {t}
                 </li>

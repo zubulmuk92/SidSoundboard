@@ -42,12 +42,12 @@ export function Hero() {
             style={{ transitionDelay: "120ms" }}
           >
             Une soundboard qui balance vos sons sur Discord sans jamais toucher à vos FPS. Tous les effets
-            sont calculés <em className="text-pelage italic">avant</em> la lecture : quand vous appuyez sur
+            sont calculés <em className="text-gel italic">avant</em> la lecture : quand vous appuyez sur
             une touche, le processeur n&apos;a plus rien à faire.
           </p>
 
           <div className="reveal flex flex-wrap gap-3" style={{ transitionDelay: "180ms" }}>
-            <a className="btn btn-braise max-sm:flex-1 max-sm:justify-center" href={liens.telechargement}>
+            <a className="btn btn-azur max-sm:flex-1 max-sm:justify-center" href={liens.telechargement}>
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                 <path
                   d="M12 3v11m0 0 4.5-4.5M12 14l-4.5-4.5M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"

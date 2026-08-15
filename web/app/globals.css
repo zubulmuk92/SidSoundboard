@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Jetons de design — direction « glace et braise ».
-   Palette froide de nuit glaciaire, avec l'ambre de l'application
-   réservé aux appels à l'action (le feu de camp).
+   Jetons de design — tout se joue sur du bleu glacial.
+   `gel` sert aux filets et aux libellés, `azur` porte les
+   actions : la hiérarchie tient sur la saturation, pas sur une
+   couleur chaude.
    ============================================================ */
 @theme {
   --color-nuit: #061019;
@@ -12,10 +13,10 @@
   --color-banquise-2: #143148;
   --color-gel: #7fe7f2;
   --color-gel-sombre: #2e9bb5;
-  --color-ambre: #ff8a3d;
-  --color-ambre-clair: #ffa05f;
-  --color-ambre-fonce: #e06b1e;
-  --color-pelage: #dbcb98;
+  --color-azur: #2fa8ff;
+  --color-azur-clair: #5cbeff;
+  --color-azur-sombre: #0b7fd4;
+  --color-azur-texte: #04121f;
   --color-brume: #92b2c8;
   --color-neige: #eff7fb;
 
@@ -47,14 +48,14 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-gel);
+    outline: 2px solid var(--color-azur);
     outline-offset: 3px;
     border-radius: 4px;
   }
 
   ::selection {
-    background: var(--color-ambre);
-    color: var(--color-nuit);
+    background: var(--color-azur);
+    color: var(--color-azur-texte);
   }
 }
 
@@ -131,15 +132,16 @@
     transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease,
       border-color 0.18s ease;
   }
-  .btn-braise {
-    background: var(--color-ambre);
-    color: #23130a;
-    box-shadow: 0 10px 34px -14px rgb(255 138 61 / 0.95);
+  .btn-azur {
+    background: var(--color-azur);
+    color: var(--color-azur-texte);
+    box-shadow: 0 10px 34px -14px rgb(47 168 255 / 0.95);
   }
-  .btn-braise:hover {
-    background: var(--color-ambre-clair);
+  .btn-azur:hover {
+    background: var(--color-azur-clair);
+    color: var(--color-azur-texte);
     transform: translateY(-2px);
-    box-shadow: 0 16px 42px -14px rgb(255 138 61 / 1);
+    box-shadow: 0 16px 42px -14px rgb(47 168 255 / 1);
   }
   .btn-gel {
     background: rgb(127 231 242 / 0.05);
@@ -166,16 +168,17 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1.375rem;
-    min-height: 104px;
-    padding: 0.75rem;
+    gap: 1.25rem;
+    min-height: 106px;
+    padding: 0.875rem;
     border: 1px solid rgb(190 235 245 / 0.22);
-    border-radius: 10px;
+    border-radius: 12px;
     background: linear-gradient(155deg, rgb(146 214 232 / 0.2), rgb(18 47 70 / 0.55) 62%);
     color: var(--color-neige);
     text-align: left;
     cursor: pointer;
-    transition: transform 0.1s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transform-style: preserve-3d;
+    transition: transform 0.14s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
   /* reflet figé dans la glace */
   .dalle::before {
@@ -200,18 +203,28 @@
   }
   .dalle:hover {
     border-color: var(--color-gel);
-    box-shadow: 0 0 0 1px rgb(127 231 242 / 0.35), 0 12px 30px -18px var(--color-gel);
+    transform: perspective(600px) translateZ(6px);
+    box-shadow: 0 0 0 1px rgb(127 231 242 / 0.35), 0 14px 32px -18px var(--color-gel);
   }
   .dalle:active {
-    transform: scale(0.975);
+    transform: perspective(600px) rotateX(4deg) scale(0.975);
   }
   .dalle[data-frappee="true"] {
-    border-color: var(--color-ambre);
-    box-shadow: 0 0 0 1px var(--color-ambre), 0 14px 40px -18px var(--color-ambre);
+    border-color: var(--color-azur);
+    box-shadow: 0 0 0 1px var(--color-azur), 0 14px 40px -18px var(--color-azur);
   }
   .dalle[data-frappee="true"]::after {
     opacity: 1;
     transition: opacity 0s;
+  }
+
+  /* ── Carte inclinée au survol ──────────────────────────── */
+  .carte-3d {
+    transition: transform 0.35s ease, border-color 0.25s ease, box-shadow 0.35s ease;
+  }
+  .carte-3d:hover {
+    transform: perspective(900px) rotateX(3deg) rotateY(-3.5deg) translateY(-5px);
+    box-shadow: -14px 18px 40px -28px rgb(47 168 255 / 0.9);
   }
 
   /* ── Schéma de routage ─────────────────────────────────── */
@@ -223,8 +236,8 @@
   .rt-noeud-gel rect {
     stroke: var(--color-gel);
   }
-  .rt-noeud-ambre rect {
-    stroke: var(--color-ambre);
+  .rt-noeud-azur rect {
+    stroke: var(--color-azur);
   }
   .rt-titre {
     font-family: var(--font-display);
@@ -250,8 +263,77 @@
   .rt-fil-gel {
     stroke: var(--color-gel);
   }
-  .rt-fil-ambre {
-    stroke: var(--color-ambre);
+  .rt-fil-azur {
+    stroke: var(--color-azur);
+  }
+}
+
+/* ============================================================
+   Le bloc de glace — Sid pris dans la banquise, en 3D.
+   Six faces givrées en CSS, deux plans croisés pour la mascotte
+   afin qu'elle reste lisible sous tous les angles.
+   ============================================================ */
+.scene {
+  perspective: 900px;
+  width: clamp(190px, 26vw, 260px);
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
+.glacon {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: tourne 26s linear infinite;
+}
+
+.glacon .facette {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(127 231 242 / 0.35);
+  border-radius: 6px;
+  background: linear-gradient(150deg, rgb(127 231 242 / 0.16), rgb(47 168 255 / 0.05) 60%);
+  box-shadow: inset 0 0 40px rgb(127 231 242 / 0.12);
+}
+.facette-avant {
+  transform: translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+}
+.facette-arriere {
+  transform: rotateY(180deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+}
+.facette-droite {
+  transform: rotateY(90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+}
+.facette-gauche {
+  transform: rotateY(-90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+}
+.facette-haut {
+  transform: rotateX(90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+}
+.facette-bas {
+  transform: rotateX(-90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+}
+
+.prisonnier {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 68%;
+  height: auto;
+  translate: -50% -50%;
+  filter: drop-shadow(0 0 18px rgb(47 168 255 / 0.5));
+}
+.prisonnier-croix {
+  transform: rotateY(90deg);
+}
+
+@keyframes tourne {
+  from {
+    transform: rotateX(-16deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(-16deg) rotateY(360deg);
   }
 }
 
@@ -279,9 +361,9 @@
     transform: translate3d(4%, 3%, 0) scale(1.08);
   }
 }
-@keyframes braise {
+@keyframes halo {
   from {
-    opacity: 0.75;
+    opacity: 0.7;
     transform: translateX(-50%) scale(0.96);
   }
   to {
@@ -303,8 +385,8 @@
 .anim-derive {
   animation: derive 22s ease-in-out infinite alternate;
 }
-.anim-braise {
-  animation: braise 5s ease-in-out infinite alternate;
+.anim-halo {
+  animation: halo 5s ease-in-out infinite alternate;
 }
 .anim-onde {
   animation: onde 1.1s ease-out infinite;
@@ -321,12 +403,19 @@
     transition: none;
   }
   .anim-derive,
-  .anim-braise,
+  .anim-halo,
   .anim-onde,
   .rt-fil {
     animation: none;
   }
-  .btn:hover {
+  /* Le bloc se fige sur un angle choisi, il reste lisible en 3D. */
+  .glacon {
+    animation: none;
+    transform: rotateX(-16deg) rotateY(-28deg);
+  }
+  .btn:hover,
+  .dalle:hover,
+  .carte-3d:hover {
     transform: none;
   }
 }

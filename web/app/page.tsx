@@ -1,5 +1,5 @@
 import { Editeur } from "@/components/Editeur";
-import { FeuDeCamp } from "@/components/FeuDeCamp";
+import { AppelFinal } from "@/components/AppelFinal";
 import { Hero } from "@/components/Hero";
 import { Installation } from "@/components/Installation";
 import { Moteur } from "@/components/Moteur";
@@ -14,7 +14,7 @@ export default function Page() {
     <>
       <a
         href="#contenu"
-        className="btn btn-braise sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50"
+        className="btn btn-azur sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50"
       >
         Aller au contenu
       </a>
@@ -29,7 +29,7 @@ export default function Page() {
         <Routage />
         <Editeur />
         <Installation />
-        <FeuDeCamp />
+        <AppelFinal />
       </main>
 
       <PiedDePage />

@@ -16,7 +16,7 @@ const etapes: { titre: string; texte: ReactNode }[] = [
     titre: "Choisissez vos sorties",
     texte: (
       <>
-        Dans <strong className="font-semibold text-pelage">Réglages</strong>, sélectionnez votre casque comme
+        Dans <strong className="font-semibold text-gel">Réglages</strong>, sélectionnez votre casque comme
         sortie principale. Activez la double sortie et pointez la seconde vers VB-Cable si vous voulez
         alimenter Discord.
       </>

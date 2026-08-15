@@ -7,8 +7,8 @@ function Fleches({ suffixe }: { suffixe: string }) {
       <marker id={`fleche-gel${suffixe}`} markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
         <path d="M0 0.5 8 4.5 0 8.5z" fill="var(--color-gel)" />
       </marker>
-      <marker id={`fleche-ambre${suffixe}`} markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-        <path d="M0 0.5 8 4.5 0 8.5z" fill="var(--color-ambre)" />
+      <marker id={`fleche-azur${suffixe}`} markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+        <path d="M0 0.5 8 4.5 0 8.5z" fill="var(--color-azur)" />
       </marker>
     </defs>
   );
@@ -44,9 +44,9 @@ export function Routage() {
 
             <path className="rt-fil rt-fil-gel" d="M188 122h84c14 0 14-56 28-56h140" markerEnd="url(#fleche-gel)" />
             <path
-              className="rt-fil rt-fil-ambre"
+              className="rt-fil rt-fil-azur"
               d="M188 138h84c14 0 14 56 28 56h140"
-              markerEnd="url(#fleche-ambre)"
+              markerEnd="url(#fleche-azur)"
             />
 
             <g className="rt-noeud rt-noeud-gel">
@@ -59,7 +59,7 @@ export function Routage() {
               </text>
             </g>
 
-            <g className="rt-noeud rt-noeud-ambre">
+            <g className="rt-noeud rt-noeud-azur">
               <rect x="452" y="166" width="180" height="56" rx="10" />
               <text x="542" y="190" className="rt-titre">
                 Câble virtuel
@@ -69,8 +69,8 @@ export function Routage() {
               </text>
             </g>
 
-            <path className="rt-fil rt-fil-ambre" d="M636 194h44" markerEnd="url(#fleche-ambre)" />
-            <text x="690" y="199" className="rt-meta fill-ambre [text-anchor:start]">
+            <path className="rt-fil rt-fil-azur" d="M636 194h44" markerEnd="url(#fleche-azur)" />
+            <text x="690" y="199" className="rt-meta fill-azur [text-anchor:start]">
               Discord
             </text>
           </svg>
@@ -90,7 +90,7 @@ export function Routage() {
             </g>
 
             <path className="rt-fil rt-fil-gel" d="M170 64v32H90v28" markerEnd="url(#fleche-gel-c)" />
-            <path className="rt-fil rt-fil-ambre" d="M170 64v32h80v28" markerEnd="url(#fleche-ambre-c)" />
+            <path className="rt-fil rt-fil-azur" d="M170 64v32h80v28" markerEnd="url(#fleche-azur-c)" />
 
             <g className="rt-noeud rt-noeud-gel">
               <rect x="16" y="130" width="148" height="56" rx="10" />
@@ -102,7 +102,7 @@ export function Routage() {
               </text>
             </g>
 
-            <g className="rt-noeud rt-noeud-ambre">
+            <g className="rt-noeud rt-noeud-azur">
               <rect x="176" y="130" width="148" height="56" rx="10" />
               <text x="250" y="155" className="rt-titre">
                 Câble virtuel
@@ -112,8 +112,8 @@ export function Routage() {
               </text>
             </g>
 
-            <path className="rt-fil rt-fil-ambre" d="M250 186v34" markerEnd="url(#fleche-ambre-c)" />
-            <text x="250" y="248" className="rt-meta fill-ambre">
+            <path className="rt-fil rt-fil-azur" d="M250 186v34" markerEnd="url(#fleche-azur-c)" />
+            <text x="250" y="248" className="rt-meta fill-azur">
               Discord
             </text>
           </svg>

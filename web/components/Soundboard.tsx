@@ -90,7 +90,7 @@ export function Soundboard({ sid }: { sid: string }) {
         }
         const haut = Math.max(3, v * h * 0.92);
         ctx.fillStyle = data
-          ? `rgba(255, 138, 61, ${0.4 + v * 0.6})`
+          ? `rgba(47, 168, 255, ${0.45 + v * 0.55})`
           : `rgba(127, 231, 242, ${0.18 + v * 0.5})`;
         ctx.fillRect(i * pas + 1, (h - haut) / 2, Math.max(2, pas - 3), haut);
       }
@@ -123,7 +123,7 @@ export function Soundboard({ sid }: { sid: string }) {
   }, []);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-gel/15 bg-[linear-gradient(160deg,rgb(20_49_72/0.92),rgb(10_26_40/0.92))] p-5 shadow-[0_40px_80px_-40px_#000,inset_0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-[6px]">
+    <div className="relative overflow-hidden rounded-2xl border border-gel/15 bg-[linear-gradient(160deg,rgb(20_49_72/0.92),rgb(10_26_40/0.92))] p-6 shadow-[0_40px_80px_-40px_#000,inset_0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-[6px] sm:p-8">
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <h2 className="font-display text-[22px] font-bold tracking-[0.04em] uppercase">Essayez-la ici</h2>
         <p className="font-mono text-[11.5px] text-brume">
@@ -135,7 +135,7 @@ export function Soundboard({ sid }: { sid: string }) {
         </p>
       </div>
 
-      <div className="my-[18px] grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="my-7 grid grid-cols-2 gap-3.5 sm:grid-cols-3">
         {DALLES.map((d) => (
           <button
             key={d.son}
@@ -156,7 +156,7 @@ export function Soundboard({ sid }: { sid: string }) {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3.5 border-t border-gel/12 pt-3.5">
+      <div className="flex flex-wrap items-center gap-4 border-t border-gel/12 pt-6">
         <canvas ref={vizRef} aria-hidden="true" className="order-3 h-14 w-full min-w-0 sm:order-none sm:flex-1" />
 
         <div className="relative w-24 flex-none">
@@ -185,13 +185,13 @@ export function Soundboard({ sid }: { sid: string }) {
         <button
           type="button"
           onClick={couper}
-          className="flex-none cursor-pointer rounded-lg border border-ambre/45 px-3 py-2.5 font-mono text-[11px] tracking-[0.12em] text-ambre uppercase transition-colors hover:bg-ambre hover:text-nuit"
+          className="flex-none cursor-pointer rounded-lg border border-azur/50 px-3.5 py-2.5 font-mono text-[11px] tracking-[0.12em] text-azur uppercase transition-colors hover:bg-azur hover:text-azur-texte"
         >
           Panique
         </button>
       </div>
 
-      <p className="mt-3 font-mono text-[10.5px] leading-normal text-brume/70">
+      <p className="mt-5 font-mono text-[10.5px] leading-normal text-brume/70">
         Sons de démonstration synthétisés dans le navigateur. Dans l&apos;application, ce sont vos fichiers.
       </p>
     </div>

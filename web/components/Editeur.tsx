@@ -41,10 +41,10 @@ export function Editeur() {
           {cartes.map((c, i) => (
             <article
               key={c.titre}
-              className="reveal rounded-xl border border-gel/13 bg-[linear-gradient(170deg,rgb(20_49_72/0.5),rgb(6_16_25/0.3))] px-6 pt-6.5 pb-7 transition hover:-translate-y-[3px] hover:border-gel/40"
+              className="reveal carte-3d rounded-xl border border-gel/13 bg-[linear-gradient(170deg,rgb(20_49_72/0.5),rgb(6_16_25/0.3))] px-6 pt-6.5 pb-7 hover:border-gel/40"
               style={{ transitionDelay: `${(i % 3) * 60}ms` }}
             >
-              <h3 className="mb-2.5 font-display text-[21px] font-bold tracking-[0.02em] text-pelage uppercase">
+              <h3 className="mb-2.5 font-display text-[21px] font-bold tracking-[0.02em] text-gel uppercase">
                 {c.titre}
               </h3>
               <p className="text-[14.5px] text-brume">{c.texte}</p>
