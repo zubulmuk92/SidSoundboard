@@ -1,5 +1,7 @@
 import keyboard
 
+import profiles
+
 class HotkeyManager:
     def __init__(self, audio_manager, config):
         self.audio_manager = audio_manager
@@ -18,7 +20,9 @@ class HotkeyManager:
             except Exception as e:
                 print(f"Failed to register panic key: {e}")
 
-        for sound in self.config.get("sounds", []):
+        # Only the active profile is bound: the same key can serve a
+        # different sound in another profile, which is the point.
+        for sound in profiles.active_sounds(self.config):
             if self._should_register(sound):
                 try:
                     hk = keyboard.add_hotkey(sound["hotkey"], self._play_sound_callback, args=(sound,))

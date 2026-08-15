@@ -10,7 +10,9 @@ from PySide6.QtWidgets import (
 
 import config_manager
 import i18n
+import profiles
 from i18n import tr
+import paths
 from audio_processor import ensure_caches, resolve_playback_file, resolve_secondary_file
 from ui.theme import QSS, TEXT_MAIN, get_icon, resource_path
 from ui.views.library_view import LibraryView
@@ -129,7 +131,7 @@ class AppGUI(QMainWindow):
         changes. Doing it here means playback never has to render anything
         on the critical path.
         """
-        sounds = list(self.config.get("sounds", []))
+        sounds = list(profiles.all_sounds(self.config))
         if not sounds or self._cache_rebuild_running:
             return
         self._cache_rebuild_running = True
@@ -138,7 +140,7 @@ class AppGUI(QMainWindow):
             rendered = 0
             for sound in sounds:
                 try:
-                    if ensure_caches(sound, self.config, "downloads"):
+                    if ensure_caches(sound, self.config, paths.downloads_dir()):
                         rendered += 1
                 except Exception:
                     pass
@@ -258,10 +260,9 @@ class AppGUI(QMainWindow):
 
     def _apply_hotkey(self, hk, sound_id):
         def apply():
-            for s in self.library_view.sounds:
+            for s in profiles.active_sounds(self.config):
                 if s["id"] == sound_id:
                     s["hotkey"] = "None" if hk == "esc" else hk
-            self.config["sounds"] = self.library_view.sounds
             config_manager.save_config(self.config)
             self.hotkey_manager.load_hotkeys(self.config)
             self.library_view.refresh()

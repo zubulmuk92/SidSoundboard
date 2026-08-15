@@ -10,7 +10,8 @@ if "--yt-worker" in sys.argv:
 import traceback
 
 def log_crash(exctype, value, tb):
-    with open("crash.log", "w") as f:
+    import paths
+    with open(paths.log_path("crash.log"), "w", encoding="utf-8") as f:
         traceback.print_exception(exctype, value, tb, file=f)
 sys.excepthook = log_crash
 

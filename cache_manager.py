@@ -1,6 +1,8 @@
 import os
 import glob
 import config_manager
+import paths
+import profiles
 
 # Cache families this module owns and is free to delete when orphaned.
 # *_v*_s* is legacy: nothing writes those any more since the cable
@@ -22,7 +24,9 @@ def cleanup_caches(config=None):
         config = config_manager.load_config()
 
     active_files = set()
-    for sound in config.get("sounds", []):
+    # Every profile, not just the active one: sweeping on the active
+    # profile alone would delete the other profiles' renders.
+    for sound in profiles.all_sounds(config):
         for key in ("filename", "cached_effects_file", "cached_secondary_file"):
             path = sound.get(key)
             if not path:
@@ -31,7 +35,7 @@ def cleanup_caches(config=None):
             active_files.add(abs_path)
             active_files.add(abs_path + ".peaks.json")
 
-    search_dirs = {os.path.abspath("."), os.path.abspath("downloads")}
+    search_dirs = {paths.data_dir(), paths.downloads_dir()}
     for f in active_files:
         search_dirs.add(os.path.dirname(f))
 

@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
 )
 
 import config_manager
+import paths
+import profiles
 from i18n import tr
 from audio_processor import (
     generate_and_save_peaks, generate_effects_cache, normalize_and_import_audio
@@ -33,7 +35,7 @@ class LibraryView(QWidget):
         super().__init__(parent)
         self.config = config
         self.audio_manager = audio_manager
-        self.sounds = self.config.get("sounds", [])
+        self.sounds = profiles.active_sounds(self.config)
         self.filtered_sounds = list(self.sounds)
         self.cards = {}
         self._build()
@@ -89,7 +91,7 @@ class LibraryView(QWidget):
         self.resize_timer.start(150)
 
     def refresh(self):
-        self.sounds = self.config.get("sounds", [])
+        self.sounds = profiles.active_sounds(self.config)
         self._filter_sounds()
 
     def _filter_sounds(self):
@@ -185,7 +187,7 @@ class LibraryView(QWidget):
 
         def worker():
             try:
-                path = generate_effects_cache(draft, "downloads")
+                path = generate_effects_cache(draft, paths.downloads_dir())
             except Exception:
                 path = ""
             self.effects_rendered.emit(sound_id, path)
@@ -223,7 +225,6 @@ class LibraryView(QWidget):
         self.refresh()
 
     def _persist(self):
-        self.config["sounds"] = self.sounds
         config_manager.save_config(self.config)
         self.sounds_changed.emit()
 
@@ -246,7 +247,7 @@ class LibraryView(QWidget):
         except Exception:
             pass
         try:
-            sound["cached_effects_file"] = generate_effects_cache(sound, "downloads")
+            sound["cached_effects_file"] = generate_effects_cache(sound, paths.downloads_dir())
         except Exception:
             sound["cached_effects_file"] = None
         return sound
@@ -270,7 +271,7 @@ class LibraryView(QWidget):
 
         def process():
             try:
-                proc_path = normalize_and_import_audio(f, "downloads", sid)
+                proc_path = normalize_and_import_audio(f, paths.downloads_dir(), sid)
                 sound = self._new_sound(sid, name, proc_path, "Gris", self.config)
             except Exception:
                 sound = {}
@@ -335,7 +336,7 @@ class LibraryView(QWidget):
             def done_cb(succ, res, err):
                 sigs.done.emit(succ, res or [], err)
 
-            download_youtube_audio_async(url, "downloads", done_cb, prog_cb)
+            download_youtube_audio_async(url, paths.downloads_dir(), done_cb, prog_cb)
 
         def finish(succ, res, err):
             dlg.accept()

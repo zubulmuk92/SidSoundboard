@@ -1,29 +1,27 @@
 import json
 import os
 
-CONFIG_FILE = "config.json"
+import paths
+import profiles
+
+# Bumped whenever the stored shape changes. A config without the key is
+# version 1 — the shape that shipped before migrations were versioned.
+CONFIG_VERSION = 2
 
 DEFAULT_CONFIG = {
-    "sounds": [],
+    "config_version": CONFIG_VERSION,
+    "profiles": [],
+    "active_profile": None,
     "language": "fr",
     "panic_hotkey": "None",
     "primary_output": None,
     "secondary_output": None,
     "dual_output_enabled": False,
     "global_secondary_volume": 100,
+    "master_volume": 100,
     "mode_solo": False,
     "fade_in_ms": 150,
     "fade_out_ms": 150,
-}
-
-# What the old "Atténuation (Ducking)" combo meant, as a volume to keep on
-# the secondary output. The combo wrote a setting playback never read; the
-# slider that replaced it writes global_secondary_volume directly.
-_LEGACY_DUCKING_TO_VOLUME = {
-    "Aucun": 100,
-    "Léger (50%)": 50,
-    "Fort (80%)": 20,
-    "Total (100%)": 0,
 }
 
 SOUND_EFFECT_DEFAULTS = {
@@ -38,26 +36,24 @@ SOUND_EFFECT_DEFAULTS = {
     "cached_secondary_volume": 100,
 }
 
-
-def migrate_settings(config):
-    """
-    Carries the old ducking combo over to the secondary-volume slider that
-    replaced it. The combo's value was never read by playback, so this is
-    the first time the choice actually takes effect.
-    """
-    legacy = config.pop("audio_ducking_level", None)
-    if legacy is not None and "global_secondary_volume" not in config:
-        config["global_secondary_volume"] = _LEGACY_DUCKING_TO_VOLUME.get(legacy, 100)
-    return config
+# What the old "Atténuation (Ducking)" combo meant, as a volume to keep on
+# the secondary output. The combo wrote a setting playback never read; the
+# slider that replaced it writes global_secondary_volume directly.
+_LEGACY_DUCKING_TO_VOLUME = {
+    "Aucun": 100,
+    "Léger (50%)": 50,
+    "Fort (80%)": 20,
+    "Total (100%)": 0,
+}
 
 
-def migrate_sounds(config):
+def _backfill_sounds(config):
     """
-    Backfills the per-sound effect keys on sounds imported before the
+    Fills in the per-sound effect keys on sounds imported before the
     effects pipeline existed. Per-sound fades inherit whatever global
     values were in force, so nothing audibly changes on upgrade.
     """
-    for sound in config.get("sounds", []):
+    for sound in profiles.all_sounds(config):
         for key, value in SOUND_EFFECT_DEFAULTS.items():
             sound.setdefault(key, value)
         sound.setdefault("fade_in_ms", config.get("fade_in_ms", 150))
@@ -65,23 +61,91 @@ def migrate_sounds(config):
     return config
 
 
+def _absolutize_paths(config, base_dir):
+    """
+    Older configs stored `filename` relative to the working directory while
+    `cached_effects_file` was absolute — so the library read as empty when
+    the app started anywhere else. Relative paths are resolved against the
+    folder the config came from, which is where those files actually are.
+    """
+    for sound in profiles.all_sounds(config):
+        for key in ("filename", "cached_effects_file", "cached_secondary_file"):
+            value = sound.get(key)
+            if value and not os.path.isabs(value):
+                sound[key] = os.path.abspath(os.path.join(base_dir, value))
+    return config
+
+
+def _migrate_v1_to_v2(config, base_dir):
+    """
+    v1 -> v2: the flat sound list becomes a single profile, the dead
+    ducking combo becomes a real secondary volume, per-sound effect keys
+    are backfilled, and every stored path becomes absolute.
+    """
+    legacy = config.pop("audio_ducking_level", None)
+    if legacy is not None and "global_secondary_volume" not in config:
+        config["global_secondary_volume"] = _LEGACY_DUCKING_TO_VOLUME.get(legacy, 100)
+
+    config.pop("main_volume", None)  # never read by anything
+
+    profiles.ensure_profiles(config)
+    _backfill_sounds(config)
+    _absolutize_paths(config, base_dir)
+
+
+# (version the config is at or below, migration to run)
+MIGRATIONS = [(1, _migrate_v1_to_v2)]
+
+
+def migrate(config, base_dir=None):
+    """Applies every migration the config has not seen yet, then stamps it."""
+    if base_dir is None:
+        base_dir = paths.data_dir()
+
+    version = config.get("config_version", 1)
+    for from_version, migration in MIGRATIONS:
+        if version <= from_version:
+            migration(config, base_dir)
+
+    for key, value in DEFAULT_CONFIG.items():
+        config.setdefault(key, value)
+
+    profiles.ensure_profiles(config)
+    config["config_version"] = CONFIG_VERSION
+    return config
+
+
+def _read(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def load_config():
-    if not os.path.exists(CONFIG_FILE):
-        return migrate_sounds(DEFAULT_CONFIG.copy())
-    try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
-            # Legacy keys first: the default merge below would otherwise fill
-            # in the new key and hide the old value we want to carry over.
-            migrate_settings(cfg)
-            # Merge with default to ensure all keys exist
-            for k, v in DEFAULT_CONFIG.items():
-                if k not in cfg:
-                    cfg[k] = v
-            return migrate_sounds(cfg)
-    except Exception:
-        return migrate_sounds(DEFAULT_CONFIG.copy())
+    """
+    Loads from the data folder, falling back once to the legacy location
+    (the working directory) so an existing library is picked up after the
+    upgrade. The legacy file is read, never moved: its sounds stay where
+    they are, and are referenced by absolute path from then on.
+    """
+    path = paths.config_path()
+    if os.path.exists(path):
+        try:
+            return migrate(_read(path), os.path.dirname(path))
+        except (OSError, ValueError):
+            return migrate(json.loads(json.dumps(DEFAULT_CONFIG)))
+
+    legacy = paths.legacy_config_path()
+    if os.path.exists(legacy) and os.path.abspath(legacy) != os.path.abspath(path):
+        try:
+            config = migrate(_read(legacy), os.path.dirname(legacy))
+            save_config(config)
+            return config
+        except (OSError, ValueError):
+            pass
+
+    return migrate(json.loads(json.dumps(DEFAULT_CONFIG)))
+
 
 def save_config(config):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+    with open(paths.config_path(), "w", encoding="utf-8") as f:
         json.dump(config, f, indent=4)
