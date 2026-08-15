@@ -37,6 +37,22 @@ Vous voulez entendre le son doucement dans votre casque, mais l'envoyer très fo
 - Interface disponible en **français** et en **anglais** (Réglages → Langue).
   Le changement est immédiat, sans redémarrage.
 
+## 🎬 Mode Scène
+La Bibliothèque sert à gérer vos sons ; la **Scène** sert à les jouer. Une
+grille de gros pads, une seule action possible : déclencher. Le pad en
+cours de lecture affiche sa progression.
+
+## 📁 Profils
+Un jeu, un stream et un appel privé n'appellent pas les mêmes sons. Chaque
+profil a sa propre liste et ses propres raccourcis — la même touche F1
+peut servir dans deux contextes. Le sélecteur est en haut de la barre
+latérale.
+
+## 💾 Où sont mes données ?
+À côté de l'exécutable, s'il peut y écrire (application portable), sinon
+dans `%APPDATA%\SidSoundboard`. L'application retrouve donc sa
+bibliothèque quel que soit le dossier depuis lequel on la lance.
+
 ## 📦 Installation & Utilisation
 Le projet est packagé en un seul fichier `.exe` autonome.
 1. Lancez `SidSoundboard.exe` (situé dans le dossier `dist/`).
