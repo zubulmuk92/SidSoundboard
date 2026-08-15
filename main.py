@@ -60,29 +60,13 @@ def main():
     from PIL import Image
     import threading
 
-    def build_tray_image(size=64):
-        """
-        Squares up the transparent logo for the tray.
-
-        logo_sq.png is a fully opaque square, so it shows as a coloured tile
-        next to the other tray icons. logo.png is properly cut out but
-        rectangular, and a tray icon is square — pasting it straight in
-        would stretch it. So: crop to the visible pixels, centre that on a
-        transparent square, and scale down.
-        """
-        logo = Image.open(resource_path("logo.png")).convert("RGBA")
-        bbox = logo.getchannel("A").getbbox() or logo.getbbox()
-        logo = logo.crop(bbox)
-
-        side = max(logo.size)
-        canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-        canvas.paste(logo, ((side - logo.width) // 2, (side - logo.height) // 2))
-        return canvas.resize((size, size), Image.LANCZOS)
-
+    # logo_sq.png is the cut-out square built by tools/make_logos.py:
+    # transparent background, so the tray shows Sid and not a coloured tile.
     try:
-        icon_image = build_tray_image()
+        icon_image = Image.open(resource_path("logo_sq.png")).convert("RGBA")
+        icon_image = icon_image.resize((64, 64), Image.LANCZOS)
     except Exception:
-        icon_image = Image.new('RGBA', (64, 64), color=(0, 210, 255, 255))
+        icon_image = Image.new("RGBA", (64, 64), color=(0, 210, 255, 255))
 
     def show_window(icon, item):
         # We must call show() in the main thread
