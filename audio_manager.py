@@ -1,5 +1,6 @@
 import array
 import miniaudio
+import threading
 import time
 
 class AudioManager:
@@ -7,7 +8,13 @@ class AudioManager:
         self.devices = miniaudio.Devices()
         self.active_playbacks = []
         self.focused_info = None
-        
+        self.fade_in_ms = 0
+        self.fade_out_ms = 0
+
+    def set_fade_durations(self, fade_in_ms, fade_out_ms):
+        self.fade_in_ms = fade_in_ms
+        self.fade_out_ms = fade_out_ms
+
     def get_output_devices(self):
         outputs = []
         for p in self.devices.get_playbacks():
@@ -17,32 +24,58 @@ class AudioManager:
             })
         return outputs
 
+    def _start_playback(self, filepath, device_id, info, seek_offset):
+        try:
+            device = miniaudio.PlaybackDevice(
+                device_id=device_id,
+                nchannels=info.nchannels,
+                sample_rate=info.sample_rate
+            )
+
+            seek_frame = int(seek_offset * info.sample_rate)
+            stream = miniaudio.stream_file(filepath, seek_frame=seek_frame)
+            next(stream)
+
+            fade_state = FadeState()
+            if self.fade_in_ms > 0 or self.fade_out_ms > 0:
+                total_frames = int(info.duration * info.sample_rate)
+                stream = FadingStream(
+                    stream, info.sample_rate, info.nchannels,
+                    self.fade_in_ms, self.fade_out_ms, total_frames, fade_state
+                )
+
+            device.start(stream)
+
+            self.active_playbacks.append((device, stream, fade_state))
+            self._cleanup_playbacks()
+            return device, fade_state
+        except Exception:
+            return None, None
+
     def play_sound(self, filepath_primary, filepath_secondary, name, volume=1.0, primary_device_name=None, secondary_device_name=None, dual_enabled=False, seek_offset=0.0, sound_id=None):
         if not filepath_primary:
             return
-            
+
         primary_id = None
         secondary_id = None
-        
+
         for dev in self.get_output_devices():
             if dev["name"] == primary_device_name:
                 primary_id = dev["id"]
             if dev["name"] == secondary_device_name:
                 secondary_id = dev["id"]
-                
+
         try:
-            # Lance le premier playback
             dev1 = None
+            fade_state1 = None
             if filepath_primary:
                 info = miniaudio.get_file_info(filepath_primary)
-                dev1 = self._start_playback(filepath_primary, primary_id, info, seek_offset)
-            
-            # Et le deuxieme si le double output est activé
+                dev1, fade_state1 = self._start_playback(filepath_primary, primary_id, info, seek_offset)
+
             if dual_enabled and secondary_id and filepath_secondary:
                 info_sec = miniaudio.get_file_info(filepath_secondary)
                 self._start_playback(filepath_secondary, secondary_id, info_sec, seek_offset)
-                
-            # Track le son pour la timeline
+
             if dev1:
                 self.focused_info = {
                     "sound_id": sound_id,
@@ -55,37 +88,17 @@ class AudioManager:
                     "primary_device_name": primary_device_name,
                     "secondary_device_name": secondary_device_name,
                     "dual_enabled": dual_enabled,
-                    "device": dev1
+                    "device": dev1,
+                    "fade_state": fade_state1,
                 }
-                
+
         except Exception as e:
-            from PySide6.QtWidgets import QMessageBox, QApplication
-            # We must use a queued call or just direct if in main thread
-            # To avoid thread issues, we just print for now
             print(f"Erreur Audio: {str(e)}")
             try:
+                from PySide6.QtWidgets import QMessageBox
                 QMessageBox.critical(None, "Erreur Audio", f"Impossible de jouer le son :\n{str(e)}")
-            except:
+            except Exception:
                 pass
-
-    def _start_playback(self, filepath, device_id, info, seek_offset):
-        try:
-            device = miniaudio.PlaybackDevice(
-                device_id=device_id,
-                nchannels=info.nchannels,
-                sample_rate=info.sample_rate
-            )
-            
-            seek_frame = int(seek_offset * info.sample_rate)
-            stream = miniaudio.stream_file(filepath, seek_frame=seek_frame)
-            next(stream) # init generator
-            device.start(stream)
-            
-            self.active_playbacks.append((device, stream))
-            self._cleanup_playbacks()
-            return device
-        except Exception:
-            return None
 
     def seek_focused(self, time_seconds):
         if not self.focused_info:
@@ -133,56 +146,75 @@ class AudioManager:
 
     def _cleanup_playbacks(self):
         alive = []
-        for item in self.active_playbacks:
-            dev = item[0] if isinstance(item, tuple) else item
+        for device, stream, fade_state in self.active_playbacks:
             try:
-                if dev.running:
-                    alive.append(item)
+                if device.running:
+                    alive.append((device, stream, fade_state))
                 else:
-                    dev.close()
-            except:
+                    device.close()
+            except Exception:
                 pass
         self.active_playbacks = alive
 
     def stop_all(self):
-        for item in self.active_playbacks:
-            dev = item[0] if isinstance(item, tuple) else item
+        for device, stream, fade_state in self.active_playbacks:
             try:
-                dev.close()
-            except:
+                device.close()
+            except Exception:
                 pass
         self.active_playbacks.clear()
         self.focused_info = None
 
     def toggle_play_pause(self, filepath_primary, filepath_secondary, name, volume=1.0, primary_device_name=None, secondary_device_name=None, dual_enabled=False, sound_id=None):
-        if not filepath_primary: return
+        if not filepath_primary:
+            return
         fi = self.focused_info
-        
+
         if fi and fi.get("sound_id") == sound_id:
-            # Même son -> bascule pause/lecture
             if fi.get("is_paused"):
-                # Reprise
                 seek = fi.get("paused_at", 0.0)
                 self.stop_all()
                 self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, seek, sound_id)
             else:
-                # Pause
                 prog = self.get_focused_progress()
                 if prog:
                     paused_at = prog["current"]
-                    for item in self.active_playbacks:
-                        dev = item[0] if isinstance(item, tuple) else item
-                        try: dev.close()
-                        except: pass
+                    for device, stream, fade_state in self.active_playbacks:
+                        try:
+                            device.close()
+                        except Exception:
+                            pass
                     self.active_playbacks.clear()
                     fi["is_paused"] = True
                     fi["paused_at"] = paused_at
                     self.focused_info = fi
             return
-            
-        # Son différent -> on coupe tout et on lance
-        self.stop_all()
+
+        if fi and self.fade_out_ms > 0 and self.active_playbacks:
+            self._crossfade_to(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, sound_id)
+        else:
+            self.stop_all()
+            self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id)
+
+    def _crossfade_to(self, filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, sound_id):
+        outgoing = list(self.active_playbacks)
+        for device, stream, fade_state in outgoing:
+            fade_state.stop_requested = True
+
+        self.active_playbacks = []
         self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id)
+
+        def close_outgoing():
+            for device, stream, fade_state in outgoing:
+                try:
+                    device.close()
+                except Exception:
+                    pass
+
+        delay = (self.fade_out_ms / 1000.0) + 0.1
+        timer = threading.Timer(delay, close_outgoing)
+        timer.daemon = True
+        timer.start()
 
 
 class FadeState:

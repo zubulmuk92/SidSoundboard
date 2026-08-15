@@ -6,10 +6,14 @@ CONFIG_FILE = "config.json"
 DEFAULT_CONFIG = {
     "sounds": [],
     "panic_key": "pause",
+    "panic_hotkey": "None",
     "main_volume": 1.0,
     "primary_output": None,
     "secondary_output": None,
-    "dual_output_enabled": False
+    "dual_output_enabled": False,
+    "audio_ducking_level": "Léger (50%)",
+    "fade_in_ms": 150,
+    "fade_out_ms": 150,
 }
 
 def load_config():
