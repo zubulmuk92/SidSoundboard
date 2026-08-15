@@ -89,7 +89,7 @@ class AppGUI(QMainWindow):
         self.stacked_widget = QStackedWidget()
         content_layout.addWidget(self.stacked_widget)
 
-        self.library_view = LibraryView(self.config)
+        self.library_view = LibraryView(self.config, self.audio_manager)
         self.library_view.sound_played.connect(self._play_sound)
         self.library_view.hotkey_bind_requested.connect(self._bind_hotkey)
         self.library_view.sounds_changed.connect(self._on_sounds_changed)

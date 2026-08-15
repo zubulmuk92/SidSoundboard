@@ -1,12 +1,14 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout
 
+from audio_processor import resolve_playback_file
 from ui.theme import BG_APP, CATEGORY_COLORS, TEXT_MAIN, TEXT_MUTED, get_icon
 from ui.widgets.waveform import WaveformWidget, load_peaks
 
 
 class SoundCard(QFrame):
     play_requested = Signal(str)
+    edit_requested = Signal(str)
     delete_requested = Signal(str)
     hotkey_requested = Signal(str, object)
     volume_changed = Signal(str, int)
@@ -39,6 +41,13 @@ class SoundCard(QFrame):
         self.hk_btn.clicked.connect(lambda: self.hotkey_requested.emit(self.sound["id"], self.hk_btn))
         top_row.addWidget(self.hk_btn)
 
+        btn_edit = QPushButton()
+        btn_edit.setIcon(get_icon("edit.svg"))
+        btn_edit.setToolTip("Éditer le son (effets, découpe, fondus)")
+        btn_edit.setFixedSize(28, 28)
+        btn_edit.clicked.connect(lambda: self.edit_requested.emit(self.sound["id"]))
+        top_row.addWidget(btn_edit)
+
         btn_del = QPushButton()
         btn_del.setIcon(get_icon("delete.svg"))
         btn_del.setProperty("class", "danger")
@@ -49,7 +58,9 @@ class SoundCard(QFrame):
         layout.addLayout(top_row)
 
         self.waveform = WaveformWidget(interactive=False)
-        peaks_path = (self.sound.get("filename") or "") + ".peaks.json"
+        # Draw the sound as it will actually be heard: the effects render,
+        # not the untouched original.
+        peaks_path = (resolve_playback_file(self.sound) or "") + ".peaks.json"
         self.waveform.set_peaks(load_peaks(peaks_path))
         layout.addWidget(self.waveform)
 

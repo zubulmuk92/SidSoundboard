@@ -9,8 +9,11 @@ from PySide6.QtWidgets import (
 )
 
 import config_manager
-from audio_processor import generate_and_save_peaks, normalize_and_import_audio
+from audio_processor import (
+    generate_and_save_peaks, generate_effects_cache, normalize_and_import_audio
+)
 from ui.theme import get_icon
+from ui.views.sound_edit_dialog import SoundEditDialog
 from ui.widgets.sound_card import SoundCard
 from yt_downloader import download_youtube_audio_async
 
@@ -19,16 +22,19 @@ class LibraryView(QWidget):
     sound_played = Signal(dict)
     hotkey_bind_requested = Signal(str, object)
     add_sound_done = Signal(str, dict)
+    effects_rendered = Signal(str, str)
     sounds_changed = Signal()
 
-    def __init__(self, config, parent=None):
+    def __init__(self, config, audio_manager, parent=None):
         super().__init__(parent)
         self.config = config
+        self.audio_manager = audio_manager
         self.sounds = self.config.get("sounds", [])
         self.filtered_sounds = list(self.sounds)
         self.cards = {}
         self._build()
         self.add_sound_done.connect(self._on_add_sound_done)
+        self.effects_rendered.connect(self._on_effects_rendered)
         self._rebuild_grid()
 
     def _build(self):
@@ -107,6 +113,7 @@ class LibraryView(QWidget):
             row, col = divmod(i, cols)
             card = SoundCard(sound)
             card.play_requested.connect(self._on_play)
+            card.edit_requested.connect(self._on_edit)
             card.delete_requested.connect(self.remove_sound)
             card.hotkey_requested.connect(self.hotkey_bind_requested)
             card.volume_changed.connect(self._on_volume_changed)
@@ -121,12 +128,52 @@ class LibraryView(QWidget):
         if sound:
             self.sound_played.emit(sound)
 
+    def _on_edit(self, sound_id):
+        sound = next((s for s in self.sounds if s["id"] == sound_id), None)
+        if not sound:
+            return
+        dlg = SoundEditDialog(sound, self.config, self.audio_manager, self)
+        if dlg.exec() == QDialog.Accepted:
+            self._persist()
+            self.refresh()
+
     def _on_volume_changed(self, sound_id, value):
+        sound = next((s for s in self.sounds if s["id"] == sound_id), None)
+        if not sound:
+            return
+        sound["volume"] = value
+        self._persist()
+        self._rerender_effects(sound)
+
+    def _rerender_effects(self, sound):
+        """
+        Re-bakes the effects cache after a quick edit on the card, in the
+        background. Playback streams that file, so leaving it stale would
+        make the change silently ineffective — the very bug this feature
+        exists to fix.
+        """
+        draft = dict(sound)
+        sound_id = sound["id"]
+
+        def worker():
+            try:
+                path = generate_effects_cache(draft, "downloads")
+            except Exception:
+                path = ""
+            self.effects_rendered.emit(sound_id, path)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    @Slot(str, str)
+    def _on_effects_rendered(self, sound_id, path):
+        if not path:
+            return
         for s in self.sounds:
             if s["id"] == sound_id:
-                s["volume"] = value
+                s["cached_effects_file"] = path
                 break
         self._persist()
+        self.refresh()
 
     def _on_color_changed(self, sound_id, color):
         for s in self.sounds:
@@ -152,6 +199,30 @@ class LibraryView(QWidget):
         config_manager.save_config(self.config)
         self.sounds_changed.emit()
 
+    @staticmethod
+    def _new_sound(sid, name, filepath, color, config):
+        """
+        Builds a complete sound dict and renders its effects cache once, so
+        every sound has a valid cached_effects_file from the moment it is
+        created — playback never needs a fallback path.
+        """
+        sound = {
+            "id": sid, "name": name, "filename": filepath,
+            "hotkey": "None", "color": color,
+            "fade_in_ms": config.get("fade_in_ms", 150),
+            "fade_out_ms": config.get("fade_out_ms", 150),
+        }
+        sound.update(config_manager.SOUND_EFFECT_DEFAULTS)
+        try:
+            generate_and_save_peaks(filepath)
+        except Exception:
+            pass
+        try:
+            sound["cached_effects_file"] = generate_effects_cache(sound, "downloads")
+        except Exception:
+            sound["cached_effects_file"] = None
+        return sound
+
     def add_sound(self):
         f, _ = QFileDialog.getOpenFileName(
             self, "Sélectionner un fichier audio", "",
@@ -162,10 +233,7 @@ class LibraryView(QWidget):
             return
 
         sid = str(uuid.uuid4())[:8]
-        new_sound = {
-            "id": sid, "name": os.path.basename(f), "filename": f,
-            "hotkey": "None", "volume": 100, "color": "Gris",
-        }
+        name = os.path.basename(f)
 
         self.progress_dialog = QProgressDialog("Importation et normalisation en cours...", None, 0, 0, self)
         self.progress_dialog.setWindowTitle("Veuillez patienter")
@@ -176,20 +244,19 @@ class LibraryView(QWidget):
         def process():
             try:
                 proc_path = normalize_and_import_audio(f, "downloads", sid)
-                generate_and_save_peaks(proc_path)
+                sound = self._new_sound(sid, name, proc_path, "Gris", self.config)
             except Exception:
-                proc_path = None
-            self.add_sound_done.emit(proc_path or "", new_sound)
+                sound = {}
+            self.add_sound_done.emit("", sound)
 
         threading.Thread(target=process, daemon=True).start()
 
     @Slot(str, dict)
-    def _on_add_sound_done(self, proc_path, new_sound):
+    def _on_add_sound_done(self, _unused, new_sound):
         if hasattr(self, "progress_dialog") and self.progress_dialog:
             self.progress_dialog.close()
 
-        if proc_path:
-            new_sound["filename"] = proc_path
+        if new_sound.get("filename"):
             self.sounds.insert(0, new_sound)
             self._persist()
             self.refresh()
@@ -248,16 +315,9 @@ class LibraryView(QWidget):
             if succ and res:
                 for filepath, yt_title in res:
                     sid = str(uuid.uuid4())[:8]
-                    try:
-                        generate_and_save_peaks(filepath)
-                    except Exception:
-                        pass
-                    new_sound = {
-                        "id": sid, "name": title_input.text() or yt_title,
-                        "filename": filepath, "hotkey": "None", "volume": 100,
-                        "color": "Musiques",
-                    }
-                    self.sounds.insert(0, new_sound)
+                    self.sounds.insert(0, self._new_sound(
+                        sid, title_input.text() or yt_title, filepath, "Musiques", self.config
+                    ))
                 self._persist()
                 self.refresh()
             else:
