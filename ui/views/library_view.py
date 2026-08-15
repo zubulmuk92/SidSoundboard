@@ -155,7 +155,8 @@ class LibraryView(QWidget):
     def add_sound(self):
         f, _ = QFileDialog.getOpenFileName(
             self, "Sélectionner un fichier audio", "",
-            "Audio Files (*.mp3 *.wav *.ogg *.flac *.m4a)"
+            "Audio Files (*.mp3 *.wav *.ogg *.flac *.m4a)",
+            options=QFileDialog.DontUseNativeDialog
         )
         if not f:
             return
