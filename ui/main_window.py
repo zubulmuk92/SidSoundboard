@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 )
 
 import config_manager
-from audio_processor import generate_cached_file_sync
+from audio_processor import generate_cached_file_sync, resolve_playback_file
 from ui.theme import QSS, TEXT_MAIN, get_icon, resource_path
 from ui.views.library_view import LibraryView
 from ui.views.settings_view import SettingsView
@@ -110,19 +110,26 @@ class AppGUI(QMainWindow):
         self.btn_set.setChecked(index == 1)
 
     def _play_sound(self, sound):
-        original_file = sound.get("filename")
-        vol_p = sound.get("volume", 100)
-        spd = sound.get("speed", 100)
-        global_sec_vol = self.config.get("global_secondary_volume", 100)
-        vol_s = int(vol_p * (global_sec_vol / 100.0))
+        playback_file = resolve_playback_file(sound)
+        if not playback_file:
+            return
 
+        # The effects are already baked into playback_file, so the secondary
+        # route only ever adds the global ducking attenuation on top — both
+        # outputs otherwise carry exactly the same mix.
+        global_sec_vol = self.config.get("global_secondary_volume", 100)
         try:
-            filepath_sec = generate_cached_file_sync(original_file, vol_s, spd)
+            filepath_sec = generate_cached_file_sync(playback_file, global_sec_vol, 100)
         except Exception:
-            filepath_sec = original_file
+            filepath_sec = playback_file
+
+        self.audio_manager.set_fade_durations(
+            sound.get("fade_in_ms", self.config.get("fade_in_ms", 150)),
+            sound.get("fade_out_ms", self.config.get("fade_out_ms", 150)),
+        )
 
         self.audio_manager.toggle_play_pause(
-            filepath_primary=original_file,
+            filepath_primary=playback_file,
             filepath_secondary=filepath_sec,
             name=sound.get("name", "Unknown"),
             volume=1.0,

@@ -46,6 +46,30 @@ class TestPlaySoundCallback(unittest.TestCase):
         self.assertEqual(kwargs["filepath_primary"], "C:/sounds/test.wav")
         self.assertEqual(kwargs["sound_id"], "abc123")
 
+    def test_prefers_the_effects_cache_when_present(self):
+        import os
+        import tempfile
+
+        tmpdir = tempfile.mkdtemp()
+        fx = os.path.join(tmpdir, "abc_fx.wav")
+        with open(fx, "wb") as f:
+            f.write(b"\x00")
+
+        audio_manager = MagicMock()
+        config = {
+            "sounds": [], "primary_output": "Speakers",
+            "secondary_output": None, "dual_output_enabled": False,
+        }
+        manager = HotkeyManager(audio_manager, config)
+        manager._play_sound_callback({
+            "id": "abc", "name": "Test", "filename": "C:/sounds/test.wav",
+            "cached_effects_file": fx, "hotkey": "f1", "volume": 100,
+        })
+
+        _, kwargs = audio_manager.toggle_play_pause.call_args
+        self.assertEqual(kwargs["filepath_primary"], fx)
+        self.assertEqual(kwargs["filepath_secondary"], fx)
+
 
 class TestPanicHotkeyRegistration(unittest.TestCase):
     def test_uses_panic_hotkey_key_and_skips_none_sentinel(self):

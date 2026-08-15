@@ -48,23 +48,30 @@ class HotkeyManager:
             self.panic_hook = None
 
     def _play_sound_callback(self, sound):
-        vol_p = sound.get("volume", 100)
-        spd = sound.get("speed", 100)
-        global_sec_vol = self.config.get("global_secondary_volume", 100)
-        vol_s = int(vol_p * (global_sec_vol / 100.0))
+        from audio_processor import generate_cached_file_sync, resolve_playback_file
 
-        original_file = sound.get("filename")
-        from audio_processor import generate_cached_file_sync
+        playback_file = resolve_playback_file(sound)
+        if not playback_file:
+            return
+
+        # Effects are baked into playback_file; the secondary route only
+        # adds the global ducking attenuation.
+        global_sec_vol = self.config.get("global_secondary_volume", 100)
         try:
-            filepath_sec = generate_cached_file_sync(original_file, vol_s, spd)
+            filepath_sec = generate_cached_file_sync(playback_file, global_sec_vol, 100)
         except Exception:
-            filepath_sec = original_file
+            filepath_sec = playback_file
 
         if self.config.get("mode_solo", False):
             self.audio_manager.stop_all()
 
+        self.audio_manager.set_fade_durations(
+            sound.get("fade_in_ms", self.config.get("fade_in_ms", 150)),
+            sound.get("fade_out_ms", self.config.get("fade_out_ms", 150)),
+        )
+
         self.audio_manager.toggle_play_pause(
-            filepath_primary=sound.get("cached_file_primary") or sound.get("cached_file") or original_file,
+            filepath_primary=playback_file,
             filepath_secondary=filepath_sec,
             name=sound.get("name", "Unknown"),
             volume=1.0,
