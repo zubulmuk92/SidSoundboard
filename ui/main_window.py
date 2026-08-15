@@ -1,7 +1,7 @@
 import threading
 
 import keyboard
-from PySide6.QtCore import QTimer, Signal, Slot
+from PySide6.QtCore import QSize, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget,
@@ -77,11 +77,21 @@ class AppGUI(QMainWindow):
         side_layout.addWidget(self.btn_set)
         side_layout.addStretch()
 
-        btn_stop = QPushButton(" STOP AUDIO")
-        btn_stop.setIcon(get_icon("stop.svg"))
-        btn_stop.setProperty("class", "danger")
-        btn_stop.clicked.connect(self.audio_manager.stop_all)
+        btn_stop = QPushButton("  ARRÊT D'URGENCE")
+        btn_stop.setObjectName("PanicButton")
+        btn_stop.setIcon(get_icon("stop.svg", "#FFFFFF"))
+        btn_stop.setIconSize(QSize(18, 18))
+        btn_stop.setFixedHeight(54)
+        btn_stop.setCursor(Qt.PointingHandCursor)
+        btn_stop.setToolTip("Coupe immédiatement tous les sons en cours")
+        btn_stop.clicked.connect(self._panic_stop)
         side_layout.addWidget(btn_stop)
+
+        self.lbl_panic_hint = QLabel()
+        self.lbl_panic_hint.setObjectName("PanicHint")
+        self.lbl_panic_hint.setAlignment(Qt.AlignCenter)
+        self._refresh_panic_hint()
+        side_layout.addWidget(self.lbl_panic_hint)
 
         main_layout.addWidget(self.sidebar)
 
@@ -157,7 +167,11 @@ class AppGUI(QMainWindow):
         # pre-rendered attenuated copy, so nothing is computed at click time.
         filepath_sec = resolve_secondary_file(sound)
 
-        if self.config.get("mode_solo", False):
+        # Solo cuts everything else — but never the sound being toggled,
+        # or pausing it would drop its position and restart from zero.
+        focused = self.audio_manager.focused_info
+        same_sound = focused and focused.get("sound_id") == sound.get("id")
+        if self.config.get("mode_solo", False) and not same_sound:
             self.audio_manager.stop_all()
 
         self.audio_manager.set_fade_durations(
@@ -184,16 +198,21 @@ class AppGUI(QMainWindow):
     def _update_timeline(self):
         prog = self.audio_manager.get_focused_progress()
         if not prog:
+            self._release_card(self._last_timeline_sound_id)
             self._last_timeline_sound_id = None
             self.player_bar.update_progress("", 0, 0, None)
             return
 
         sound_id = prog.get("sound_id")
         peaks = None
+        if sound_id != self._last_timeline_sound_id:
+            self._release_card(self._last_timeline_sound_id)
+
         card = self.library_view.cards.get(sound_id)
         if card:
             if prog["duration"] > 0:
                 card.set_playback_progress(prog["current"] / prog["duration"])
+            card.set_playing_state("paused" if prog["is_paused"] else "playing")
 
         if sound_id != self._last_timeline_sound_id:
             self._last_timeline_sound_id = sound_id
@@ -202,7 +221,28 @@ class AppGUI(QMainWindow):
             # else: sound not currently rendered (filtered/scrolled out of view) -
             # leave peaks as None and let the player bar keep its last-known peaks.
 
-        self.player_bar.update_progress(prog["name"], prog["current"], prog["duration"], peaks)
+        self.player_bar.update_progress(
+            prog["name"], prog["current"], prog["duration"], peaks, prog["is_paused"]
+        )
+
+    def _release_card(self, sound_id):
+        """Puts a card's button back to PLAY once it is no longer the sound
+        the transport is following."""
+        card = self.library_view.cards.get(sound_id)
+        if card:
+            card.set_playing_state("idle")
+            card.set_playback_progress(0.0)
+
+    def _panic_stop(self):
+        self.audio_manager.stop_all()
+        self._release_card(self._last_timeline_sound_id)
+        self._last_timeline_sound_id = None
+
+    def _refresh_panic_hint(self):
+        key = self.config.get("panic_hotkey", "None")
+        self.lbl_panic_hint.setText(
+            "" if key in (None, "None") else f"ou la touche {key.upper()}"
+        )
 
     def _bind_hotkey(self, sound_id, btn):
         btn.setText("Press key...")
@@ -241,6 +281,7 @@ class AppGUI(QMainWindow):
             config_manager.save_config(self.config)
             self.hotkey_manager.load_hotkeys(self.config)
             self.settings_view.set_panic_label(self.config["panic_hotkey"])
+            self._refresh_panic_hint()
         QTimer.singleShot(0, apply)
 
     def _on_settings_saved(self, config):

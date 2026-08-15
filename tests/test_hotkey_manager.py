@@ -92,5 +92,36 @@ class TestPanicHotkeyRegistration(unittest.TestCase):
             mock_on_press_key.assert_not_called()
 
 
+class TestSoloMode(unittest.TestCase):
+    SOUND = {"id": "abc", "name": "T", "filename": "x.wav", "hotkey": "f1"}
+
+    def _manager(self, focused_id):
+        audio_manager = MagicMock()
+        audio_manager.focused_info = (
+            {"sound_id": focused_id} if focused_id is not None else None
+        )
+        config = {
+            "sounds": [], "mode_solo": True, "primary_output": "Speakers",
+            "secondary_output": None, "dual_output_enabled": False,
+        }
+        return audio_manager, HotkeyManager(audio_manager, config)
+
+    def test_solo_cuts_a_different_sound(self):
+        audio_manager, manager = self._manager("other")
+        manager._play_sound_callback(self.SOUND)
+        audio_manager.stop_all.assert_called_once()
+
+    def test_solo_does_not_cut_the_sound_being_toggled(self):
+        audio_manager, manager = self._manager("abc")
+        manager._play_sound_callback(self.SOUND)
+        audio_manager.stop_all.assert_not_called()
+        audio_manager.toggle_play_pause.assert_called_once()
+
+    def test_solo_with_nothing_playing_cuts_nothing(self):
+        audio_manager, manager = self._manager(None)
+        manager._play_sound_callback(self.SOUND)
+        audio_manager.stop_all.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

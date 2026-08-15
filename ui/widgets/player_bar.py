@@ -29,8 +29,11 @@ class PlayerBar(QFrame):
         self.lbl_time_tot.setFixedWidth(40)
         layout.addWidget(self.lbl_time_tot)
 
-    def update_progress(self, name, current, duration, peaks):
-        self.lbl_playing.setText(f"En cours: {name}" if name else "Aucun son en cours")
+    def update_progress(self, name, current, duration, peaks, is_paused=False):
+        if not name:
+            self.lbl_playing.setText("Aucun son en cours")
+        else:
+            self.lbl_playing.setText(f"{'En pause' if is_paused else 'En cours'} : {name}")
         self.lbl_time_cur.setText(self._format_time(current))
         self.lbl_time_tot.setText(self._format_time(duration))
         if peaks is not None:

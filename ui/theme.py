@@ -159,6 +159,36 @@ QSlider::handle:horizontal {{ background: {ACCENT}; width: 14px; margin-top: -4p
 
 #EmptyState {{ color: {TEXT_MUTED}; font-size: 14px; }}
 
+/* The one warm thing in the app, shaped like the industrial mushroom
+   button it stands for: domed at rest, flattened and sunk when pressed. */
+#Sidebar #PanicButton {{
+    background-color: qradialgradient(cx:0.5, cy:0.32, radius:0.95, fx:0.5, fy:0.28,
+        stop:0 #FF9C8E, stop:0.5 {DANGER}, stop:1 #B62D22);
+    color: #FFFFFF;
+    border: 2px solid #7C1E15;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-align: center;
+    margin: 0px 14px;
+}}
+#Sidebar #PanicButton:hover {{
+    background-color: qradialgradient(cx:0.5, cy:0.32, radius:0.95, fx:0.5, fy:0.28,
+        stop:0 #FFB3A7, stop:0.5 #FF7C6B, stop:1 #C93427);
+    border: 2px solid #FFB3A7;
+}}
+#Sidebar #PanicButton:pressed {{
+    background-color: qradialgradient(cx:0.5, cy:0.6, radius:0.95, fx:0.5, fy:0.7,
+        stop:0 #C93427, stop:1 #8E241B);
+    border: 2px solid #5E150F;
+    padding-top: 12px;
+    padding-bottom: 8px;
+}}
+
+#Sidebar #PanicHint {{ color: {TEXT_MUTED}; font-size: 10px; letter-spacing: 0.5px; }}
+
 QProgressBar {{ border: 1px solid {BG_APP}; border-radius: 4px; text-align: center; color: white; background: {BG_PANEL}; }}
 QProgressBar::chunk {{ background-color: {ACCENT}; width: 1px; }}
 """

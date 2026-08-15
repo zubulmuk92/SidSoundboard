@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout
 
 from audio_processor import resolve_playback_file
-from ui.theme import BG_APP, CATEGORY_COLORS, TEXT_MAIN, TEXT_MUTED, get_icon
+from ui.theme import ACCENT_TEXT, BG_APP, CATEGORY_COLORS, TEXT_MAIN, TEXT_MUTED, get_icon
 from ui.widgets.waveform import WaveformWidget, load_peaks
 
 
@@ -19,6 +19,7 @@ class SoundCard(QFrame):
         self.sound = sound
         self.setObjectName("SoundCard")
         self.setFixedSize(300, 130)
+        self._playing_state = None
         self._build()
 
     def _build(self):
@@ -66,12 +67,12 @@ class SoundCard(QFrame):
 
         bot_row = QHBoxLayout()
         bot_row.setSpacing(6)
-        btn_play = QPushButton(" PLAY")
-        btn_play.setIcon(get_icon("play.svg"))
-        btn_play.setProperty("class", "accent")
-        btn_play.setFixedSize(70, 26)
-        btn_play.clicked.connect(lambda: self.play_requested.emit(self.sound["id"]))
-        bot_row.addWidget(btn_play)
+        self.btn_play = QPushButton()
+        self.btn_play.setProperty("class", "accent")
+        self.btn_play.setFixedSize(78, 26)
+        self.btn_play.clicked.connect(lambda: self.play_requested.emit(self.sound["id"]))
+        self.set_playing_state("idle")
+        bot_row.addWidget(self.btn_play)
 
         vol_slider = QSlider(Qt.Horizontal)
         vol_slider.setRange(0, 400)
@@ -89,7 +90,7 @@ class SoundCard(QFrame):
         cb_color = QComboBox()
         cb_color.addItems(list(CATEGORY_COLORS.keys()))
         cb_color.setCurrentText(cat)
-        cb_color.setFixedWidth(65)
+        cb_color.setFixedWidth(58)
         cb_color.currentTextChanged.connect(lambda c: self.color_changed.emit(self.sound["id"], c))
         bot_row.addWidget(cb_color)
 
@@ -97,3 +98,19 @@ class SoundCard(QFrame):
 
     def set_playback_progress(self, ratio):
         self.waveform.set_progress(ratio)
+
+    def set_playing_state(self, state):
+        """
+        The button always names what pressing it does next: PAUSE while the
+        sound runs, PLAY otherwise. A paused sound reads as PLAY because
+        that is what resumes it — the waveform keeps the held position.
+        """
+        if state == self._playing_state:
+            return
+        self._playing_state = state
+
+        playing = state == "playing"
+        self.btn_play.setText(" PAUSE" if playing else " PLAY")
+        self.btn_play.setIcon(
+            get_icon("pause.svg" if playing else "play.svg", ACCENT_TEXT)
+        )

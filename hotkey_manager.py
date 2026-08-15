@@ -59,7 +59,11 @@ class HotkeyManager:
         # hotkey must fire instantly.
         filepath_sec = resolve_secondary_file(sound)
 
-        if self.config.get("mode_solo", False):
+        # Solo cuts everything else — but never the sound being toggled,
+        # or pausing it would drop its position and restart from zero.
+        focused = self.audio_manager.focused_info
+        same_sound = focused and focused.get("sound_id") == sound.get("id")
+        if self.config.get("mode_solo", False) and not same_sound:
             self.audio_manager.stop_all()
 
         self.audio_manager.set_fade_durations(
