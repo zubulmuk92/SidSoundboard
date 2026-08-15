@@ -339,15 +339,6 @@
   filter: drop-shadow(0 0 20px rgb(47 168 255 / 0.55));
 }
 
-/* Défenses et crocs de la frise : un aplat plus clair, jamais une opacité —
-   sur fond sombre l'opacité les rendait gris sales au lieu d'ivoire. */
-.ivoire {
-  fill: #e4f6fc;
-}
-.ivoire-trait {
-  stroke: #e4f6fc;
-}
-
 /* Cristal de glace : une rotation continue, très lente. */
 .anim-cristal {
   animation: cristal 120s linear infinite;
