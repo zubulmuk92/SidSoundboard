@@ -51,11 +51,6 @@ def generate_cached_file_sync(original_file, vol_pct, speed_percent):
     return target_file
 
 def normalize_and_import_audio(original_file, target_dir, base_name=None):
-    with open("debug.log", "a", encoding="utf-8") as dlog:
-        dlog.write(f"Starting normalize_and_import_audio with {original_file}\\n")
-        dlog.write(f"FFMPEG_PATH is: {FFMPEG_PATH}\\n")
-        dlog.write(f"Does FFMPEG exist? {os.path.exists(FFMPEG_PATH)}\\n")
-
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
         
@@ -81,19 +76,7 @@ def normalize_and_import_audio(original_file, target_dir, base_name=None):
         target_file
     ]
     
-    with open("debug.log", "a", encoding="utf-8") as dlog:
-        dlog.write(f"Executing cmd: {' '.join(cmd)}\\n")
-        dlog.write(f"startupinfo: {startupinfo}\\n")
-        
-    try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
-        with open("debug.log", "a", encoding="utf-8") as dlog:
-            dlog.write(f"subprocess.run finished with returncode {result.returncode}\\n")
-    except Exception as e:
-        import traceback
-        with open("debug.log", "a", encoding="utf-8") as dlog:
-            dlog.write(f"subprocess.run CRASHED:\\n{traceback.format_exc()}\\n")
-        raise e
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
     if result.returncode != 0:
         err = result.stderr.decode('utf-8', errors='ignore')
         raise Exception(f"Erreur FFmpeg Normalisation: {err}")

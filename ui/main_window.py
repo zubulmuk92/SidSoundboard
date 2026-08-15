@@ -2,6 +2,7 @@ import threading
 
 import keyboard
 from PySide6.QtCore import QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget,
     QVBoxLayout, QWidget
@@ -9,7 +10,7 @@ from PySide6.QtWidgets import (
 
 import config_manager
 from audio_processor import generate_cached_file_sync
-from ui.theme import QSS, TEXT_MAIN, get_icon
+from ui.theme import QSS, TEXT_MAIN, get_icon, resource_path
 from ui.views.library_view import LibraryView
 from ui.views.settings_view import SettingsView
 from ui.widgets.player_bar import PlayerBar
@@ -28,6 +29,7 @@ class AppGUI(QMainWindow):
         )
 
         self.setWindowTitle("SidSoundboard - Studio Edition")
+        self.setWindowIcon(QIcon(resource_path("logo.ico")))
         self.resize(1050, 750)
         self.setMinimumSize(950, 650)
         self.setStyleSheet(QSS)
