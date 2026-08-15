@@ -18,15 +18,16 @@ Vous voulez entendre le son doucement dans votre casque, mais l'envoyer très fo
 - Le volume de la sortie secondaire est réglable globalement dans les paramètres.
 - Les deux flux sont streamés en parfaite synchronisation par le moteur C sous-jacent.
 
-## 🎨 Interface Moderne (Ghost Buttons)
+## 🎨 Interface Moderne
 - Navigation par Sidebar latérale (façon Discord/VS Code).
-- Boutons "Outline/Ghost" qui s'illuminent au survol.
-- Thème sombre professionnel, conçu avec `CustomTkinter`.
+- Waveform précalculée sur chaque son, cliquable pour naviguer dans la lecture.
+- Fondus d'entrée/sortie et crossfade entre les sons.
+- Thème graphite/ambre professionnel, conçu avec `PySide6` (Qt).
 
 ## 📦 Installation & Utilisation
 Le projet est packagé en un seul fichier `.exe` autonome.
 1. Lancez `SidSoundboard.exe` (situé dans le dossier `dist/`).
-2. Dans **Routage Virtuel**, vous pouvez installer *VB-Cable* si ce n'est pas déjà fait.
-3. Dans **Paramètres**, configurez votre sortie Principale (Casque) et Secondaire (VB-Cable).
+2. Installez *VB-Cable* séparément si vous voulez router le son vers un micro virtuel (l'app ne l'installe pas elle-même).
+3. Dans **Réglages**, configurez votre sortie Principale (Casque), activez la Double Sortie et choisissez la sortie Secondaire (VB-Cable) si besoin.
 4. Dans **Bibliothèque**, ajoutez vos sons (MP3, WAV) ou téléchargez-les directement depuis YouTube/YT Music en collant l'URL !
 5. Assignez vos touches de raccourci (macros) et profitez d'un son instantané.
