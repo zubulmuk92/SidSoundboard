@@ -190,5 +190,92 @@ class TestGenerateEffectsCache(unittest.TestCase):
         self.assertTrue(out.endswith("abc123_preview.wav"))
 
 
+class TestResolveSecondaryFile(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.fx = os.path.join(self.tmpdir, "a_fx.wav")
+        self.sec = os.path.join(self.tmpdir, "a_sec.wav")
+        for p in (self.fx, self.sec):
+            with open(p, "wb") as f:
+                f.write(b"\x00")
+
+    def test_prefers_the_secondary_cache(self):
+        sound = {"filename": "o.wav", "cached_effects_file": self.fx,
+                 "cached_secondary_file": self.sec}
+        self.assertEqual(audio_processor.resolve_secondary_file(sound), self.sec)
+
+    def test_falls_back_to_the_effects_cache(self):
+        sound = {"filename": "o.wav", "cached_effects_file": self.fx}
+        self.assertEqual(audio_processor.resolve_secondary_file(sound), self.fx)
+
+    def test_falls_back_when_the_secondary_cache_vanished(self):
+        sound = {"filename": "o.wav", "cached_effects_file": self.fx,
+                 "cached_secondary_file": os.path.join(self.tmpdir, "gone.wav")}
+        self.assertEqual(audio_processor.resolve_secondary_file(sound), self.fx)
+
+
+@unittest.skipUnless(
+    os.path.exists(audio_processor.FFMPEG_PATH), "ffmpeg binary not available"
+)
+class TestSecondaryCacheAndEnsure(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.wav_path = os.path.join(self.tmpdir, "tone.wav")
+        with wave.open(self.wav_path, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(44100)
+            w.writeframes((8000).to_bytes(2, "little", signed=True) * 44100)
+
+    def _peak(self, path):
+        return max(audio_processor.generate_peaks(path, 20))
+
+    def test_secondary_cache_is_attenuated(self):
+        sound = {"id": "s", "filename": self.wav_path}
+        sound["cached_effects_file"] = audio_processor.generate_effects_cache(
+            sound, self.tmpdir, with_peaks=False
+        )
+        sec = audio_processor.generate_secondary_cache(sound, 50, self.tmpdir)
+        self.assertTrue(sec.endswith("s_sec.wav"))
+        self.assertAlmostEqual(
+            self._peak(sec), self._peak(sound["cached_effects_file"]) / 2, places=2
+        )
+
+    def test_no_secondary_cache_at_full_volume(self):
+        sound = {"id": "s", "filename": self.wav_path}
+        sound["cached_effects_file"] = audio_processor.generate_effects_cache(
+            sound, self.tmpdir, with_peaks=False
+        )
+        self.assertIsNone(audio_processor.generate_secondary_cache(sound, 100, self.tmpdir))
+
+    def test_ensure_caches_renders_a_missing_effects_cache(self):
+        sound = {"id": "m", "filename": self.wav_path}
+        changed = audio_processor.ensure_caches(sound, {}, self.tmpdir)
+        self.assertTrue(changed)
+        self.assertTrue(os.path.exists(sound["cached_effects_file"]))
+
+    def test_ensure_caches_is_a_no_op_when_everything_is_present(self):
+        sound = {"id": "m", "filename": self.wav_path}
+        audio_processor.ensure_caches(sound, {}, self.tmpdir)
+        self.assertFalse(audio_processor.ensure_caches(sound, {}, self.tmpdir))
+
+    def test_ensure_caches_rerenders_when_the_secondary_volume_changed(self):
+        sound = {"id": "m", "filename": self.wav_path}
+        audio_processor.ensure_caches(sound, {"global_secondary_volume": 50}, self.tmpdir)
+        self.assertTrue(os.path.exists(sound["cached_secondary_file"]))
+        self.assertFalse(
+            audio_processor.ensure_caches(sound, {"global_secondary_volume": 50}, self.tmpdir)
+        )
+        self.assertTrue(
+            audio_processor.ensure_caches(sound, {"global_secondary_volume": 20}, self.tmpdir)
+        )
+
+    def test_ensure_caches_drops_the_secondary_cache_at_full_volume(self):
+        sound = {"id": "m", "filename": self.wav_path}
+        audio_processor.ensure_caches(sound, {"global_secondary_volume": 50}, self.tmpdir)
+        audio_processor.ensure_caches(sound, {"global_secondary_volume": 100}, self.tmpdir)
+        self.assertIsNone(sound["cached_secondary_file"])
+
+
 if __name__ == "__main__":
     unittest.main()

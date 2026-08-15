@@ -43,6 +43,19 @@ class TestCleanupCaches(unittest.TestCase):
         self.assertFalse(os.path.exists(orphan_ducking))
         self.assertFalse(os.path.exists(orphan_effects))
 
+    def test_protects_the_secondary_cache_and_drops_orphan_ones(self):
+        keeper = self._touch("kept_fx.wav")
+        secondary = self._touch("kept_sec.wav")
+        orphan = self._touch("deleted_sec.wav")
+        cache_manager.cleanup_caches({
+            "sounds": [{
+                "filename": keeper, "cached_effects_file": keeper,
+                "cached_secondary_file": secondary,
+            }]
+        })
+        self.assertTrue(os.path.exists(secondary))
+        self.assertFalse(os.path.exists(orphan))
+
     def test_always_removes_preview_renders(self):
         keeper = self._touch("kept_fx.wav")
         preview = self._touch("kept_preview.wav")

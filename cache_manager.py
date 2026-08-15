@@ -3,7 +3,7 @@ import glob
 import config_manager
 
 # Cache families this module owns and is free to delete when orphaned.
-CACHE_PATTERNS = ("*_v*_s*.*", "*_fx.wav", "*_fx.wav.peaks.json")
+CACHE_PATTERNS = ("*_v*_s*.*", "*_fx.wav", "*_fx.wav.peaks.json", "*_sec.wav")
 
 # Preview renders are throwaway by construction: never protected.
 DISPOSABLE_PATTERNS = ("*_preview.wav", "*_preview.wav.peaks.json")
@@ -20,7 +20,7 @@ def cleanup_caches(config=None):
 
     active_files = set()
     for sound in config.get("sounds", []):
-        for key in ("filename", "cached_effects_file"):
+        for key in ("filename", "cached_effects_file", "cached_secondary_file"):
             path = sound.get(key)
             if not path:
                 continue

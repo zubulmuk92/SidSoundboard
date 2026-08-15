@@ -10,9 +10,20 @@ DEFAULT_CONFIG = {
     "primary_output": None,
     "secondary_output": None,
     "dual_output_enabled": False,
-    "audio_ducking_level": "Léger (50%)",
+    "global_secondary_volume": 100,
+    "mode_solo": False,
     "fade_in_ms": 150,
     "fade_out_ms": 150,
+}
+
+# What the old "Atténuation (Ducking)" combo meant, as a volume to keep on
+# the secondary output. The combo wrote a setting playback never read; the
+# slider that replaced it writes global_secondary_volume directly.
+_LEGACY_DUCKING_TO_VOLUME = {
+    "Aucun": 100,
+    "Léger (50%)": 50,
+    "Fort (80%)": 20,
+    "Total (100%)": 0,
 }
 
 SOUND_EFFECT_DEFAULTS = {
@@ -23,7 +34,21 @@ SOUND_EFFECT_DEFAULTS = {
     "trim_start_sec": 0.0,
     "trim_end_sec": None,
     "cached_effects_file": None,
+    "cached_secondary_file": None,
+    "cached_secondary_volume": 100,
 }
+
+
+def migrate_settings(config):
+    """
+    Carries the old ducking combo over to the secondary-volume slider that
+    replaced it. The combo's value was never read by playback, so this is
+    the first time the choice actually takes effect.
+    """
+    legacy = config.pop("audio_ducking_level", None)
+    if legacy is not None and "global_secondary_volume" not in config:
+        config["global_secondary_volume"] = _LEGACY_DUCKING_TO_VOLUME.get(legacy, 100)
+    return config
 
 
 def migrate_sounds(config):
@@ -46,6 +71,9 @@ def load_config():
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             cfg = json.load(f)
+            # Legacy keys first: the default merge below would otherwise fill
+            # in the new key and hide the old value we want to carry over.
+            migrate_settings(cfg)
             # Merge with default to ensure all keys exist
             for k, v in DEFAULT_CONFIG.items():
                 if k not in cfg:

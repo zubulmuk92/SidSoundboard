@@ -33,5 +33,30 @@ class TestMigrateSounds(unittest.TestCase):
         self.assertIs(config_manager.migrate_sounds(config), config)
 
 
+class TestMigrateSettings(unittest.TestCase):
+    def test_carries_the_old_ducking_choice_to_a_volume(self):
+        config = {"audio_ducking_level": "Fort (80%)"}
+        config_manager.migrate_settings(config)
+        self.assertEqual(config["global_secondary_volume"], 20)
+        self.assertNotIn("audio_ducking_level", config)
+
+    def test_maps_every_legacy_choice(self):
+        expected = {"Aucun": 100, "Léger (50%)": 50, "Fort (80%)": 20, "Total (100%)": 0}
+        for legacy, volume in expected.items():
+            config = {"audio_ducking_level": legacy}
+            config_manager.migrate_settings(config)
+            self.assertEqual(config["global_secondary_volume"], volume, legacy)
+
+    def test_an_explicit_volume_wins_over_the_legacy_key(self):
+        config = {"audio_ducking_level": "Fort (80%)", "global_secondary_volume": 75}
+        config_manager.migrate_settings(config)
+        self.assertEqual(config["global_secondary_volume"], 75)
+
+    def test_leaves_a_config_without_the_legacy_key_alone(self):
+        config = {}
+        config_manager.migrate_settings(config)
+        self.assertNotIn("global_secondary_volume", config)
+
+
 if __name__ == "__main__":
     unittest.main()

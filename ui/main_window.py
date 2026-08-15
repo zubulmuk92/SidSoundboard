@@ -1,7 +1,7 @@
 import threading
 
 import keyboard
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Signal, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget,
@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 )
 
 import config_manager
-from audio_processor import generate_cached_file_sync, resolve_playback_file
+from audio_processor import ensure_caches, resolve_playback_file, resolve_secondary_file
 from ui.theme import QSS, TEXT_MAIN, get_icon, resource_path
 from ui.views.library_view import LibraryView
 from ui.views.settings_view import SettingsView
@@ -18,8 +18,12 @@ from ui.widgets.waveform import load_peaks
 
 
 class AppGUI(QMainWindow):
+    caches_ready = Signal(int)
+
     def __init__(self, audio_manager, hotkey_manager, config):
         super().__init__()
+        self._cache_rebuild_running = False
+        self.caches_ready.connect(self._on_caches_ready)
         self.audio_manager = audio_manager
         self.hotkey_manager = hotkey_manager
         self.config = config
@@ -104,6 +108,41 @@ class AppGUI(QMainWindow):
         self.player_bar.seek_requested.connect(self._on_seek)
         content_layout.addWidget(self.player_bar)
 
+        self._rebuild_caches_async()
+
+    def _rebuild_caches_async(self):
+        """
+        Renders, in the background, whatever cache files the sounds are
+        missing or have outdated — sounds imported before the effects
+        pipeline existed, and every sound after the secondary volume
+        changes. Doing it here means playback never has to render anything
+        on the critical path.
+        """
+        sounds = list(self.config.get("sounds", []))
+        if not sounds or self._cache_rebuild_running:
+            return
+        self._cache_rebuild_running = True
+
+        def worker():
+            rendered = 0
+            for sound in sounds:
+                try:
+                    if ensure_caches(sound, self.config, "downloads"):
+                        rendered += 1
+                except Exception:
+                    pass
+            self.caches_ready.emit(rendered)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    @Slot(int)
+    def _on_caches_ready(self, rendered):
+        self._cache_rebuild_running = False
+        if not rendered:
+            return
+        config_manager.save_config(self.config)
+        self.library_view.refresh()
+
     def _switch_tab(self, index):
         self.stacked_widget.setCurrentIndex(index)
         self.btn_lib.setChecked(index == 0)
@@ -114,14 +153,12 @@ class AppGUI(QMainWindow):
         if not playback_file:
             return
 
-        # The effects are already baked into playback_file, so the secondary
-        # route only ever adds the global ducking attenuation on top — both
-        # outputs otherwise carry exactly the same mix.
-        global_sec_vol = self.config.get("global_secondary_volume", 100)
-        try:
-            filepath_sec = generate_cached_file_sync(playback_file, global_sec_vol, 100)
-        except Exception:
-            filepath_sec = playback_file
+        # Both routes carry the same baked effects; the secondary one is a
+        # pre-rendered attenuated copy, so nothing is computed at click time.
+        filepath_sec = resolve_secondary_file(sound)
+
+        if self.config.get("mode_solo", False):
+            self.audio_manager.stop_all()
 
         self.audio_manager.set_fade_durations(
             sound.get("fade_in_ms", self.config.get("fade_in_ms", 150)),
@@ -213,6 +250,8 @@ class AppGUI(QMainWindow):
             config.get("fade_in_ms", 150), config.get("fade_out_ms", 150)
         )
         self.hotkey_manager.load_hotkeys(config)
+        # The secondary volume may have moved: re-bake the cable renders.
+        self._rebuild_caches_async()
 
     def _on_sounds_changed(self):
         self.hotkey_manager.load_hotkeys(self.config)

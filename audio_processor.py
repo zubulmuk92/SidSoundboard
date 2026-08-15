@@ -268,3 +268,94 @@ def resolve_playback_file(sound):
     if cached and os.path.exists(cached):
         return cached
     return sound.get("filename")
+
+
+def resolve_secondary_file(sound):
+    """
+    The file the virtual-cable output should stream: the attenuated variant
+    when one exists, otherwise the same file as the headphones — the two
+    routes carry identical effects, and differ only by that attenuation.
+    """
+    cached = sound.get("cached_secondary_file")
+    if cached and os.path.exists(cached):
+        return cached
+    return resolve_playback_file(sound)
+
+
+def generate_secondary_cache(sound, secondary_volume, target_dir=None):
+    """
+    Renders the virtual-cable variant of a sound: the very same baked
+    effects, attenuated by the global secondary volume. Returns None at
+    100%, where the headphone render already is the right file.
+
+    Pre-rendering this matters: attenuating at play time would mean a
+    synchronous FFmpeg run on the first click of every sound, freezing the
+    UI — the opposite of the zero-latency design.
+    """
+    if secondary_volume == 100:
+        return None
+
+    source = resolve_playback_file(sound)
+    if not source or not os.path.exists(source):
+        raise ValueError(f"Fichier source introuvable: {source}")
+
+    if not target_dir:
+        target_dir = os.path.dirname(os.path.abspath(source))
+    target = os.path.abspath(
+        os.path.join(target_dir, f"{sound.get('id', 'sound')}_sec.wav")
+    )
+
+    startupinfo = None
+    if os.name == 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    cmd = [
+        FFMPEG_PATH, "-y", "-i", source,
+        "-filter:a", f"volume={round(secondary_volume / 100.0, 4)}",
+        target,
+    ]
+    result = subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo
+    )
+    if result.returncode != 0:
+        err = result.stderr.decode('utf-8', errors='ignore')
+        raise Exception(f"Erreur FFmpeg Sortie secondaire: {err}")
+
+    return target
+
+
+def ensure_caches(sound, config, target_dir=None):
+    """
+    Renders whatever cache files this sound is missing or has outdated, and
+    returns True when anything was written. Safe to call on every sound at
+    startup: a sound whose caches are all current costs one os.path.exists
+    per cache and nothing else.
+    """
+    changed = False
+
+    cached_fx = sound.get("cached_effects_file")
+    if not cached_fx or not os.path.exists(cached_fx):
+        sound["cached_effects_file"] = generate_effects_cache(sound, target_dir)
+        changed = True
+
+    wanted_volume = config.get("global_secondary_volume", 100)
+    cached_sec = sound.get("cached_secondary_file")
+    stale = (
+        sound.get("cached_secondary_volume") != wanted_volume
+        or (cached_sec and not os.path.exists(cached_sec))
+    )
+
+    if wanted_volume == 100:
+        if cached_sec is not None or "cached_secondary_file" not in sound:
+            sound["cached_secondary_file"] = None
+            sound["cached_secondary_volume"] = 100
+            changed = changed or cached_sec is not None
+    elif stale or not cached_sec:
+        sound["cached_secondary_file"] = generate_secondary_cache(
+            sound, wanted_volume, target_dir
+        )
+        sound["cached_secondary_volume"] = wanted_volume
+        changed = True
+
+    return changed

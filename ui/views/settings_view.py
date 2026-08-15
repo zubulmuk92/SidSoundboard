@@ -1,6 +1,7 @@
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QFrame, QGridLayout, QLabel, QMessageBox,
-    QPushButton, QSpinBox, QVBoxLayout, QWidget
+    QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel,
+    QPushButton, QSlider, QSpinBox, QVBoxLayout, QWidget
 )
 
 from ui.theme import TEXT_MAIN
@@ -55,11 +56,27 @@ class SettingsView(QWidget):
         form_layout.addWidget(self.cb_second_device, row, 1)
         row += 1
 
-        self.cb_ducking = QComboBox()
-        self.cb_ducking.addItems(["Aucun", "Léger (50%)", "Fort (80%)", "Total (100%)"])
-        self.cb_ducking.setCurrentText(self.config.get("audio_ducking_level", "Léger (50%)"))
-        form_layout.addWidget(QLabel("Atténuation (Ducking) :"), row, 0)
-        form_layout.addWidget(self.cb_ducking, row, 1)
+        self.sl_secondary_volume = QSlider(Qt.Horizontal)
+        self.sl_secondary_volume.setRange(0, 100)
+        self.sl_secondary_volume.setValue(self.config.get("global_secondary_volume", 100))
+        self.sl_secondary_volume.setEnabled(self.chk_dual.isChecked())
+        self.lbl_secondary_volume = QLabel(f"{self.sl_secondary_volume.value()}%")
+        self.lbl_secondary_volume.setFixedWidth(45)
+        self.sl_secondary_volume.valueChanged.connect(
+            lambda v: self.lbl_secondary_volume.setText(f"{v}%")
+        )
+        vol_row = QWidget()
+        vol_layout = QHBoxLayout(vol_row)
+        vol_layout.setContentsMargins(0, 0, 0, 0)
+        vol_layout.addWidget(self.sl_secondary_volume)
+        vol_layout.addWidget(self.lbl_secondary_volume)
+        form_layout.addWidget(QLabel("Volume envoyé sur le câble virtuel :"), row, 0)
+        form_layout.addWidget(vol_row, row, 1)
+        row += 1
+
+        self.chk_solo = QCheckBox("Mode solo — un seul son à la fois")
+        self.chk_solo.setChecked(self.config.get("mode_solo", False))
+        form_layout.addWidget(self.chk_solo, row, 0)
         row += 1
 
         self.spin_fade_in = QSpinBox()
@@ -84,16 +101,17 @@ class SettingsView(QWidget):
         form_layout.addWidget(self.btn_panic, row, 1)
         row += 1
 
-        btn_save = QPushButton("SAUVEGARDER")
-        btn_save.setProperty("class", "accent")
-        btn_save.clicked.connect(self._save)
-        form_layout.addWidget(btn_save, row, 1)
+        self.btn_save = QPushButton("SAUVEGARDER")
+        self.btn_save.setProperty("class", "accent")
+        self.btn_save.clicked.connect(self._save)
+        form_layout.addWidget(self.btn_save, row, 1)
 
         layout.addWidget(form)
         layout.addStretch()
 
     def _on_dual_toggled(self, checked):
         self.cb_second_device.setEnabled(checked)
+        self.sl_secondary_volume.setEnabled(checked)
 
     def set_panic_label(self, hotkey_text):
         self.btn_panic.setText(f"Touche Arrêt: {hotkey_text}")
@@ -102,8 +120,12 @@ class SettingsView(QWidget):
         self.config["primary_output"] = self.cb_main_device.currentText()
         self.config["dual_output_enabled"] = self.chk_dual.isChecked()
         self.config["secondary_output"] = self.cb_second_device.currentText()
-        self.config["audio_ducking_level"] = self.cb_ducking.currentText()
+        self.config["global_secondary_volume"] = self.sl_secondary_volume.value()
+        self.config["mode_solo"] = self.chk_solo.isChecked()
         self.config["fade_in_ms"] = self.spin_fade_in.value()
         self.config["fade_out_ms"] = self.spin_fade_out.value()
         self.on_save(self.config)
-        QMessageBox.information(self, "Succès", "Réglages appliqués.")
+        # Inline confirmation rather than a modal to dismiss: saving settings
+        # is not an event worth interrupting the user for.
+        self.btn_save.setText("ENREGISTRÉ ✓")
+        QTimer.singleShot(1600, lambda: self.btn_save.setText("SAUVEGARDER"))

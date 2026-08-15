@@ -48,19 +48,16 @@ class HotkeyManager:
             self.panic_hook = None
 
     def _play_sound_callback(self, sound):
-        from audio_processor import generate_cached_file_sync, resolve_playback_file
+        from audio_processor import resolve_playback_file, resolve_secondary_file
 
         playback_file = resolve_playback_file(sound)
         if not playback_file:
             return
 
-        # Effects are baked into playback_file; the secondary route only
-        # adds the global ducking attenuation.
-        global_sec_vol = self.config.get("global_secondary_volume", 100)
-        try:
-            filepath_sec = generate_cached_file_sync(playback_file, global_sec_vol, 100)
-        except Exception:
-            filepath_sec = playback_file
+        # Effects are baked into playback_file; the secondary route is a
+        # pre-rendered attenuated copy of it. Nothing is computed here — a
+        # hotkey must fire instantly.
+        filepath_sec = resolve_secondary_file(sound)
 
         if self.config.get("mode_solo", False):
             self.audio_manager.stop_all()
