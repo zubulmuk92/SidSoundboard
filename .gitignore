@@ -28,3 +28,11 @@ cache/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Bundled binaries and runtime artifacts
+bin/
+crash.log
+debug.log
+config.json
+downloads/
+*.peaks.json

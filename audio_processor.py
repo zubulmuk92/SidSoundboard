@@ -1,10 +1,13 @@
 import os
+import sys
 import subprocess
 import threading
-import static_ffmpeg
 
-# S'assurer que ffmpeg est dans le PATH
-static_ffmpeg.add_paths()
+# Define absolute path to ffmpeg.exe
+if hasattr(sys, '_MEIPASS'):
+    FFMPEG_PATH = os.path.join(sys._MEIPASS, 'bin', 'win32', 'ffmpeg.exe')
+else:
+    FFMPEG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'win32', 'ffmpeg.exe')
 
 def generate_cached_file_sync(original_file, vol_pct, speed_percent):
     if vol_pct == 100 and speed_percent == 100:
@@ -34,7 +37,7 @@ def generate_cached_file_sync(original_file, vol_pct, speed_percent):
     filter_str = ",".join(filters)
         
     cmd = [
-        "ffmpeg", "-y", "-i", original_file,
+        FFMPEG_PATH, "-y", "-i", original_file,
         "-filter:a", filter_str,
         target_file
     ]
@@ -47,10 +50,11 @@ def generate_cached_file_sync(original_file, vol_pct, speed_percent):
     return target_file
 
 def normalize_and_import_audio(original_file, target_dir, base_name=None):
-    """
-    Normalise le volume de l'audio (loudnorm) et le convertit en WAV pour un décodage instantané.
-    Bloquant, donc à exécuter dans un thread si utilisé par l'UI.
-    """
+    with open("debug.log", "a", encoding="utf-8") as dlog:
+        dlog.write(f"Starting normalize_and_import_audio with {original_file}\\n")
+        dlog.write(f"FFMPEG_PATH is: {FFMPEG_PATH}\\n")
+        dlog.write(f"Does FFMPEG exist? {os.path.exists(FFMPEG_PATH)}\\n")
+
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
         
@@ -70,13 +74,25 @@ def normalize_and_import_audio(original_file, target_dir, base_name=None):
         
     # loudnorm filter + convert to 44.1k 16-bit WAV
     cmd = [
-        "ffmpeg", "-y", "-i", original_file,
+        FFMPEG_PATH, "-y", "-i", original_file,
         "-filter:a", "loudnorm=I=-16:TP=-1.5:LRA=11",
         "-ar", "44100", "-ac", "2",
         target_file
     ]
     
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
+    with open("debug.log", "a", encoding="utf-8") as dlog:
+        dlog.write(f"Executing cmd: {' '.join(cmd)}\\n")
+        dlog.write(f"startupinfo: {startupinfo}\\n")
+        
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
+        with open("debug.log", "a", encoding="utf-8") as dlog:
+            dlog.write(f"subprocess.run finished with returncode {result.returncode}\\n")
+    except Exception as e:
+        import traceback
+        with open("debug.log", "a", encoding="utf-8") as dlog:
+            dlog.write(f"subprocess.run CRASHED:\\n{traceback.format_exc()}\\n")
+        raise e
     if result.returncode != 0:
         err = result.stderr.decode('utf-8', errors='ignore')
         raise Exception(f"Erreur FFmpeg Normalisation: {err}")

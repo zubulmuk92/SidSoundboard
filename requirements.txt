@@ -3,4 +3,4 @@ keyboard
 pystray
 Pillow
 yt-dlp
-static-ffmpeg
+PySide6
