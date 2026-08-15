@@ -22,6 +22,14 @@ Vous voulez entendre le son doucement dans votre casque, mais l'envoyer très fo
 - Navigation par Sidebar latérale (façon Discord/VS Code).
 - Waveform précalculée sur chaque son, cliquable pour naviguer dans la lecture.
 - Fondus d'entrée/sortie et crossfade entre les sons.
+- Page d'édition par son : volume, vitesse/pitch, bass booster, reverb,
+  découpe à la souris sur la waveform, et fondus d'entrée/sortie propres
+  à chaque son.
+- Tous les effets sont rendus une seule fois par FFmpeg et joués à
+  l'identique sur les **deux** sorties (casque et câble virtuel) — ce que
+  vous entendez est exactement ce que vos amis entendent.
+- Édition non destructive : le fichier original est conservé intact, vous
+  pouvez revenir en arrière sur n'importe quel réglage à tout moment.
 - Thème graphite/ambre professionnel, conçu avec `PySide6` (Qt).
 
 ## 📦 Installation & Utilisation

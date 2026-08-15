@@ -172,26 +172,42 @@ def build_effects_filter_chain(sound):
     if volume != 100:
         filters.append(f"volume={round(volume / 100.0, 4)}")
 
+    if filters:
+        # Bass boost, reverb and a volume above 100% all push the signal past
+        # full scale. Hard clipping there sounds like distortion, so the chain
+        # ends on a limiter — free at playback time, since this is baked in.
+        # level=disabled: the filter auto-normalizes back to full scale
+        # otherwise, which would undo the very headroom it just made.
+        filters.append("alimiter=limit=0.95:level=disabled")
+
     return ",".join(filters)
 
 
 def build_effects_ffmpeg_args(sound, source, target):
     """FFmpeg argv (without the binary path) rendering `source` to `target`."""
     args = ["-y"]
+    trimmed = False
 
     trim_start = sound.get("trim_start_sec") or 0
     if trim_start > 0:
         args += ["-ss", str(round(float(trim_start), 3))]
+        trimmed = True
 
     trim_end = sound.get("trim_end_sec")
     if trim_end:
         args += ["-to", str(round(float(trim_end), 3))]
+        trimmed = True
 
     args += ["-i", source]
 
     chain = build_effects_filter_chain(sound)
     if chain:
         args += ["-filter:a", chain]
+    elif trimmed:
+        # A stream copy can only cut on packet boundaries, overshooting the
+        # requested cut by tens of milliseconds. Re-encoding the PCM makes
+        # the trim sample-accurate, which is what dragging a handle implies.
+        args += ["-c:a", "pcm_s16le"]
     else:
         # Nothing to compute: PCM stream copy, near-instant and lossless.
         args += ["-c", "copy"]
