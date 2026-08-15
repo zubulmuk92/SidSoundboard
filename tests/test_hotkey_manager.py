@@ -123,5 +123,22 @@ class TestSoloMode(unittest.TestCase):
         audio_manager.stop_all.assert_called_once()
 
 
+
+class TestFindConflicts(unittest.TestCase):
+    def test_no_conflict_when_every_key_is_unique(self):
+        sounds = [{"hotkey": "f1", "name": "A"}, {"hotkey": "f2", "name": "B"}]
+        self.assertEqual(HotkeyManager.find_conflicts(sounds), {})
+
+    def test_a_shared_key_is_reported_with_both_sounds(self):
+        sounds = [{"hotkey": "f1", "name": "A"}, {"hotkey": "f1", "name": "B"}]
+        conflicts = HotkeyManager.find_conflicts(sounds)
+        self.assertEqual(sorted(s["name"] for s in conflicts["f1"]), ["A", "B"])
+
+    def test_unbound_sounds_never_conflict(self):
+        sounds = [{"hotkey": "None", "name": "A"}, {"hotkey": "None", "name": "B"},
+                  {"hotkey": None, "name": "C"}]
+        self.assertEqual(HotkeyManager.find_conflicts(sounds), {})
+
+
 if __name__ == "__main__":
     unittest.main()

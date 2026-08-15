@@ -15,6 +15,9 @@ ENV/
 build/
 dist/
 *.spec
+# ...except this one: it is the hand-written build recipe, not a
+# PyInstaller-generated file.
+!SidSoundboard.spec
 
 # Audio Files
 *.mp3

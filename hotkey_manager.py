@@ -31,6 +31,20 @@ class HotkeyManager:
                     print(f"Failed to register hotkey {sound['hotkey']}: {e}")
 
     @staticmethod
+    def find_conflicts(sounds):
+        """
+        Maps each hotkey claimed by more than one sound to those sounds.
+        Two sounds could always bind the same key, with the last one
+        registered silently winning; this is what lets the UI say so.
+        """
+        claimed = {}
+        for sound in sounds:
+            hotkey = sound.get("hotkey")
+            if hotkey and hotkey != "None":
+                claimed.setdefault(hotkey, []).append(sound)
+        return {k: v for k, v in claimed.items() if len(v) > 1}
+
+    @staticmethod
     def _should_register(sound):
         hotkey = sound.get("hotkey")
         filepath = sound.get("filename")

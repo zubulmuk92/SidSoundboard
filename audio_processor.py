@@ -88,7 +88,7 @@ def _effect(sound, key):
     return EFFECT_NEUTRAL[key] if value is None else value
 
 
-def build_effects_filter_chain(sound):
+def build_effects_filter_chain(sound, master_volume=100):
     """
     Builds the FFmpeg -filter:a chain for a sound's effects. Neutral
     effects are omitted so an untouched sound renders as a stream copy.
@@ -112,8 +112,11 @@ def build_effects_filter_chain(sound):
         decay = round(0.3 + reverb * 0.004, 3)
         filters.append(f"aecho=0.8:0.9:{delay}:{decay}")
 
-    volume = _effect(sound, "volume")
-    if volume != 100:
+    # The master volume folds in here rather than being applied at
+    # playback: everything is pre-rendered, and a live gain would cost CPU
+    # per sample, which the whole design exists to avoid.
+    volume = _effect(sound, "volume") * (master_volume / 100.0)
+    if abs(volume - 100) > 1e-9:
         filters.append(f"volume={round(volume / 100.0, 4)}")
 
     if filters:
@@ -127,7 +130,7 @@ def build_effects_filter_chain(sound):
     return ",".join(filters)
 
 
-def build_effects_ffmpeg_args(sound, source, target):
+def build_effects_ffmpeg_args(sound, source, target, master_volume=100):
     """FFmpeg argv (without the binary path) rendering `source` to `target`."""
     args = ["-y"]
     trimmed = False
@@ -144,7 +147,7 @@ def build_effects_ffmpeg_args(sound, source, target):
 
     args += ["-i", source]
 
-    chain = build_effects_filter_chain(sound)
+    chain = build_effects_filter_chain(sound, master_volume)
     if chain:
         args += ["-filter:a", chain]
     elif trimmed:
@@ -160,7 +163,8 @@ def build_effects_ffmpeg_args(sound, source, target):
     return args
 
 
-def generate_effects_cache(sound, target_dir=None, suffix="_fx", with_peaks=True):
+def generate_effects_cache(sound, target_dir=None, suffix="_fx", with_peaks=True,
+                           master_volume=100):
     """
     Renders every active effect of `sound` into a single deterministic file
     ({id}{suffix}.wav), always overwritten. The source is always
@@ -185,7 +189,7 @@ def generate_effects_cache(sound, target_dir=None, suffix="_fx", with_peaks=True
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
-    cmd = [FFMPEG_PATH] + build_effects_ffmpeg_args(sound, source, target)
+    cmd = [FFMPEG_PATH] + build_effects_ffmpeg_args(sound, source, target, master_volume)
     result = subprocess.run(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo
     )
@@ -277,10 +281,15 @@ def ensure_caches(sound, config, target_dir=None):
     per cache and nothing else.
     """
     changed = False
+    master = config.get("master_volume", 100)
 
     cached_fx = sound.get("cached_effects_file")
-    if not cached_fx or not os.path.exists(cached_fx):
-        sound["cached_effects_file"] = generate_effects_cache(sound, target_dir)
+    if (not cached_fx or not os.path.exists(cached_fx)
+            or sound.get("cached_master_volume") != master):
+        sound["cached_effects_file"] = generate_effects_cache(
+            sound, target_dir, master_volume=master
+        )
+        sound["cached_master_volume"] = master
         changed = True
 
     wanted_volume = config.get("global_secondary_volume", 100)

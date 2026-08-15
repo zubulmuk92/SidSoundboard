@@ -279,3 +279,28 @@ class TestSecondaryCacheAndEnsure(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMasterVolume(unittest.TestCase):
+    def test_master_at_100_changes_nothing(self):
+        self.assertEqual(
+            audio_processor.build_effects_filter_chain({"volume": 100}, 100), ""
+        )
+
+    def test_master_scales_the_sound_volume(self):
+        chain = audio_processor.build_effects_filter_chain({"volume": 200}, 25)
+        self.assertEqual(chain, "volume=0.5,alimiter=limit=0.95:level=disabled")
+
+    def test_a_unity_product_renders_no_filter(self):
+        # 200% of a sound at 50% master is exactly unity gain: nothing to do.
+        self.assertEqual(
+            audio_processor.build_effects_filter_chain({"volume": 200}, 50), ""
+        )
+
+    def test_master_alone_is_enough_to_produce_a_filter(self):
+        chain = audio_processor.build_effects_filter_chain({}, 50)
+        self.assertEqual(chain, "volume=0.5,alimiter=limit=0.95:level=disabled")
+
+    def test_master_reaches_the_ffmpeg_args(self):
+        args = audio_processor.build_effects_ffmpeg_args({}, "in.wav", "out.wav", 25)
+        self.assertIn("volume=0.25", args[args.index("-filter:a") + 1])
