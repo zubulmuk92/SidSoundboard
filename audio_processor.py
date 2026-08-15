@@ -133,3 +133,122 @@ def generate_and_save_peaks(filepath, num_buckets=200):
     with open(peaks_path, "w", encoding="utf-8") as f:
         json.dump({"peaks": peaks}, f)
     return peaks_path
+
+
+EFFECT_NEUTRAL = {"volume": 100, "speed": 100, "bass_boost": 0, "reverb": 0}
+
+
+def _effect(sound, key):
+    """Reads an effect value, treating None/missing as the neutral value."""
+    value = sound.get(key)
+    return EFFECT_NEUTRAL[key] if value is None else value
+
+
+def build_effects_filter_chain(sound):
+    """
+    Builds the FFmpeg -filter:a chain for a sound's effects. Neutral
+    effects are omitted so an untouched sound renders as a stream copy.
+    Volume comes last, to normalize the level after bass/reverb have had
+    their chance to push the signal into clipping.
+    """
+    filters = []
+
+    bass = _effect(sound, "bass_boost")
+    if bass > 0:
+        filters.append(f"bass=g={round(bass * 0.2, 2)}")
+
+    speed = _effect(sound, "speed")
+    if speed != 100:
+        filters.append(f"asetrate=44100*{round(speed / 100.0, 4)}")
+        filters.append("aresample=44100")
+
+    reverb = _effect(sound, "reverb")
+    if reverb > 0:
+        delay = int(round(40 + reverb * 1.6))
+        decay = round(0.3 + reverb * 0.004, 3)
+        filters.append(f"aecho=0.8:0.9:{delay}:{decay}")
+
+    volume = _effect(sound, "volume")
+    if volume != 100:
+        filters.append(f"volume={round(volume / 100.0, 4)}")
+
+    return ",".join(filters)
+
+
+def build_effects_ffmpeg_args(sound, source, target):
+    """FFmpeg argv (without the binary path) rendering `source` to `target`."""
+    args = ["-y"]
+
+    trim_start = sound.get("trim_start_sec") or 0
+    if trim_start > 0:
+        args += ["-ss", str(round(float(trim_start), 3))]
+
+    trim_end = sound.get("trim_end_sec")
+    if trim_end:
+        args += ["-to", str(round(float(trim_end), 3))]
+
+    args += ["-i", source]
+
+    chain = build_effects_filter_chain(sound)
+    if chain:
+        args += ["-filter:a", chain]
+    else:
+        # Nothing to compute: PCM stream copy, near-instant and lossless.
+        args += ["-c", "copy"]
+
+    args.append(target)
+    return args
+
+
+def generate_effects_cache(sound, target_dir=None, suffix="_fx", with_peaks=True):
+    """
+    Renders every active effect of `sound` into a single deterministic file
+    ({id}{suffix}.wav), always overwritten. The source is always
+    sound["filename"] — the untouched normalized original — so effects and
+    trim stay non-destructive and fully reversible.
+    """
+    source = sound.get("filename")
+    if not source or not os.path.exists(source):
+        raise ValueError(f"Fichier source introuvable: {source}")
+
+    if not target_dir:
+        target_dir = os.path.dirname(os.path.abspath(source))
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+
+    target = os.path.abspath(
+        os.path.join(target_dir, f"{sound.get('id', 'sound')}{suffix}.wav")
+    )
+
+    startupinfo = None
+    if os.name == 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    cmd = [FFMPEG_PATH] + build_effects_ffmpeg_args(sound, source, target)
+    result = subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo
+    )
+    if result.returncode != 0:
+        err = result.stderr.decode('utf-8', errors='ignore')
+        raise Exception(f"Erreur FFmpeg Effets: {err}")
+
+    if with_peaks:
+        try:
+            generate_and_save_peaks(target)
+        except Exception:
+            pass
+
+    return target
+
+
+def resolve_playback_file(sound):
+    """
+    The file playback should stream: the effects cache when it is on disk,
+    the original otherwise (cache deleted by hand, or sound imported before
+    the effects pipeline existed).
+    """
+    cached = sound.get("cached_effects_file")
+    if cached and os.path.exists(cached):
+        return cached
+    return sound.get("filename")
