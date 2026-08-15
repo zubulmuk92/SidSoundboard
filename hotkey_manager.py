@@ -10,24 +10,26 @@ class HotkeyManager:
     def load_hotkeys(self, config):
         self.config = config
         self._clear_hotkeys()
-        
-        # Enregistrer la touche panique
+
         if self.config.get("panic_key"):
             try:
                 self.panic_hook = keyboard.on_press_key(self.config["panic_key"], self._panic_callback)
             except Exception as e:
                 print(f"Failed to register panic key: {e}")
 
-        # Enregistrer les sons
         for sound in self.config.get("sounds", []):
-            hotkey = sound.get("hotkey")
-            filepath = sound.get("file")
-            if hotkey and filepath:
+            if self._should_register(sound):
                 try:
-                    hk = keyboard.add_hotkey(hotkey, self._play_sound_callback, args=(sound,))
+                    hk = keyboard.add_hotkey(sound["hotkey"], self._play_sound_callback, args=(sound,))
                     self.registered_hotkeys.append(hk)
                 except Exception as e:
-                    print(f"Failed to register hotkey {hotkey}: {e}")
+                    print(f"Failed to register hotkey {sound['hotkey']}: {e}")
+
+    @staticmethod
+    def _should_register(sound):
+        hotkey = sound.get("hotkey")
+        filepath = sound.get("filename")
+        return bool(hotkey) and hotkey != "None" and bool(filepath)
 
     def _clear_hotkeys(self):
         for hk in self.registered_hotkeys:
@@ -49,17 +51,17 @@ class HotkeyManager:
         spd = sound.get("speed", 100)
         global_sec_vol = self.config.get("global_secondary_volume", 100)
         vol_s = int(vol_p * (global_sec_vol / 100.0))
-        
-        original_file = sound.get("file")
+
+        original_file = sound.get("filename")
         from audio_processor import generate_cached_file_sync
         try:
             filepath_sec = generate_cached_file_sync(original_file, vol_s, spd)
-        except:
+        except Exception:
             filepath_sec = original_file
-            
+
         if self.config.get("mode_solo", False):
             self.audio_manager.stop_all()
-            
+
         self.audio_manager.toggle_play_pause(
             filepath_primary=sound.get("cached_file_primary") or sound.get("cached_file") or original_file,
             filepath_secondary=filepath_sec,
