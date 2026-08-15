@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import threading
+import json
 
 # Define absolute path to ffmpeg.exe
 if hasattr(sys, '_MEIPASS'):
@@ -110,5 +111,42 @@ def process_audio_async(original_file, volume_primary, speed_percent, on_done_ca
             on_done_callback(True, target_primary, "")
         except Exception as e:
             on_done_callback(False, None, str(e))
-            
+
     threading.Thread(target=worker, daemon=True).start()
+
+
+def generate_peaks(filepath, num_buckets=200):
+    """
+    Decodes the file once (mono) and reduces it to num_buckets normalized
+    peak values (0.0-1.0), for a lightweight waveform preview. Only ever
+    called once, at import time, from a background thread.
+    """
+    import miniaudio
+    decoded = miniaudio.decode_file(filepath, nchannels=1)
+    samples = decoded.samples
+    total = len(samples)
+    if total == 0:
+        return [0.0] * num_buckets
+
+    bucket_size = max(1, total // num_buckets)
+    peaks = []
+    for i in range(0, total, bucket_size):
+        chunk = samples[i:i + bucket_size]
+        if not chunk:
+            continue
+        peak = max(abs(s) for s in chunk) / 32768.0
+        peaks.append(min(1.0, peak))
+
+    if len(peaks) < num_buckets:
+        peaks.extend([0.0] * (num_buckets - len(peaks)))
+    else:
+        peaks = peaks[:num_buckets]
+    return peaks
+
+
+def generate_and_save_peaks(filepath, num_buckets=200):
+    peaks = generate_peaks(filepath, num_buckets)
+    peaks_path = filepath + ".peaks.json"
+    with open(peaks_path, "w", encoding="utf-8") as f:
+        json.dump({"peaks": peaks}, f)
+    return peaks_path
