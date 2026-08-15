@@ -2,37 +2,51 @@ import os
 import glob
 import config_manager
 
+# Cache families this module owns and is free to delete when orphaned.
+CACHE_PATTERNS = ("*_v*_s*.*", "*_fx.wav", "*_fx.wav.peaks.json")
+
+# Preview renders are throwaway by construction: never protected.
+DISPOSABLE_PATTERNS = ("*_preview.wav", "*_preview.wav.peaks.json")
+
+
 def cleanup_caches(config=None):
     """
-    Supprime tous les fichiers _v*_s* qui ne sont pas dans le config actuel.
+    Deletes cache files that no sound in the config refers to any more:
+    the per-sound effects renders (_fx), their peaks, the on-the-fly
+    ducking renders (_v*_s*), and every leftover preview render.
     """
     if config is None:
         config = config_manager.load_config()
-        
+
     active_files = set()
     for sound in config.get("sounds", []):
-        if "cached_file_primary" in sound and sound["cached_file_primary"]:
-            active_files.add(os.path.abspath(sound["cached_file_primary"]))
-        if "cached_file_secondary" in sound and sound["cached_file_secondary"]:
-            active_files.add(os.path.abspath(sound["cached_file_secondary"]))
-        # Keep original files obviously, but they shouldn't match the regex unless named that way
-        if "file" in sound and sound["file"]:
-            active_files.add(os.path.abspath(sound["file"]))
-            
-    # On cherche tous les fichiers _v*_s* dans les répertoires des sons originaux
-    # et dans le dossier courant
-    search_dirs = set([os.path.abspath(".")])
+        for key in ("filename", "cached_effects_file"):
+            path = sound.get(key)
+            if not path:
+                continue
+            abs_path = os.path.abspath(path)
+            active_files.add(abs_path)
+            active_files.add(abs_path + ".peaks.json")
+
+    search_dirs = {os.path.abspath("."), os.path.abspath("downloads")}
     for f in active_files:
         search_dirs.add(os.path.dirname(f))
-        
+
     for d in search_dirs:
-        # Pattern: *_v*_s*.*
-        pattern = os.path.join(d, "*_v*_s*.*")
-        for f in glob.glob(pattern):
-            abs_f = os.path.abspath(f)
-            if abs_f not in active_files:
-                try:
-                    os.remove(abs_f)
-                    print(f"Nettoyé: {abs_f}")
-                except Exception as e:
-                    pass
+        if not os.path.isdir(d):
+            continue
+        for pattern in CACHE_PATTERNS:
+            for f in glob.glob(os.path.join(d, pattern)):
+                abs_f = os.path.abspath(f)
+                if abs_f not in active_files:
+                    _remove(abs_f)
+        for pattern in DISPOSABLE_PATTERNS:
+            for f in glob.glob(os.path.join(d, pattern)):
+                _remove(os.path.abspath(f))
+
+
+def _remove(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
