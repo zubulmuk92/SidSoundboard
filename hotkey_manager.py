@@ -11,9 +11,10 @@ class HotkeyManager:
         self.config = config
         self._clear_hotkeys()
 
-        if self.config.get("panic_key"):
+        panic_hotkey = self.config.get("panic_hotkey")
+        if panic_hotkey and panic_hotkey != "None":
             try:
-                self.panic_hook = keyboard.on_press_key(self.config["panic_key"], self._panic_callback)
+                self.panic_hook = keyboard.on_press_key(panic_hotkey, self._panic_callback)
             except Exception as e:
                 print(f"Failed to register panic key: {e}")
 

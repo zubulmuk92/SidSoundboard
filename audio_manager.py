@@ -38,7 +38,7 @@ class AudioManager:
 
             fade_state = FadeState()
             if self.fade_in_ms > 0 or self.fade_out_ms > 0:
-                total_frames = int(info.duration * info.sample_rate)
+                total_frames = int((info.duration - seek_offset) * info.sample_rate)
                 stream = FadingStream(
                     stream, info.sample_rate, info.nchannels,
                     self.fade_in_ms, self.fade_out_ms, total_frames, fade_state

@@ -19,6 +19,7 @@ class LibraryView(QWidget):
     sound_played = Signal(dict)
     hotkey_bind_requested = Signal(str, object)
     add_sound_done = Signal(str, dict)
+    sounds_changed = Signal()
 
     def __init__(self, config, parent=None):
         super().__init__(parent)
@@ -86,8 +87,8 @@ class LibraryView(QWidget):
         self.filtered_sounds = [
             s for s in self.sounds
             if term in s.get("name", "").lower()
-            or term in s.get("hotkey", "").lower()
-            or term in s.get("color", "").lower()
+            or term in (s.get("hotkey") or "").lower()
+            or term in (s.get("color") or "").lower()
         ]
         self._rebuild_grid()
 
@@ -149,6 +150,7 @@ class LibraryView(QWidget):
     def _persist(self):
         self.config["sounds"] = self.sounds
         config_manager.save_config(self.config)
+        self.sounds_changed.emit()
 
     def add_sound(self):
         f, _ = QFileDialog.getOpenFileName(

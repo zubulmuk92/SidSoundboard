@@ -71,6 +71,8 @@ QSlider::handle:horizontal {{ background: {ACCENT}; width: 14px; margin-top: -4p
 #SoundCard {{ background-color: {BG_PANEL}; border: 1px solid {BG_APP}; border-radius: 8px; }}
 #SoundCard:hover {{ background-color: {BG_HOVER}; border: 1px solid {ACCENT}; }}
 
+#PlayerBar {{ background-color: {BG_PANEL}; border: 1px solid {BG_APP}; border-radius: 8px; }}
+
 QProgressBar {{ border: 1px solid {BG_APP}; border-radius: 4px; text-align: center; color: white; background: {BG_PANEL}; }}
 QProgressBar::chunk {{ background-color: {ACCENT}; width: 1px; }}
 """
