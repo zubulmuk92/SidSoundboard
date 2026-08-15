@@ -274,10 +274,19 @@
    afin qu'elle reste lisible sous tous les angles.
    ============================================================ */
 .scene {
+  --taille: clamp(190px, 26vw, 260px);
+  --duree: 26s;
   perspective: 900px;
-  width: clamp(190px, 26vw, 260px);
+  width: var(--taille);
   aspect-ratio: 1;
   margin-inline: auto;
+}
+
+/* Éclat de banquise : même mécanique, en petit et en fond de décor. */
+.scene-eclat {
+  --taille: clamp(48px, 5vw, 84px);
+  perspective: 300px;
+  opacity: 0.55;
 }
 
 .glacon {
@@ -285,7 +294,7 @@
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  animation: tourne 26s linear infinite;
+  animation: tourne var(--duree) linear infinite;
 }
 
 .glacon .facette {
@@ -297,22 +306,22 @@
   box-shadow: inset 0 0 40px rgb(127 231 242 / 0.12);
 }
 .facette-avant {
-  transform: translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+  transform: translateZ(calc(var(--taille) / 2));
 }
 .facette-arriere {
-  transform: rotateY(180deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+  transform: rotateY(180deg) translateZ(calc(var(--taille) / 2));
 }
 .facette-droite {
-  transform: rotateY(90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+  transform: rotateY(90deg) translateZ(calc(var(--taille) / 2));
 }
 .facette-gauche {
-  transform: rotateY(-90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+  transform: rotateY(-90deg) translateZ(calc(var(--taille) / 2));
 }
 .facette-haut {
-  transform: rotateX(90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+  transform: rotateX(90deg) translateZ(calc(var(--taille) / 2));
 }
 .facette-bas {
-  transform: rotateX(-90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
+  transform: rotateX(-90deg) translateZ(calc(var(--taille) / 2));
 }
 
 /* La mascotte est un plan unique au centre du bloc. Elle contre-tourne
@@ -326,8 +335,25 @@
   height: auto;
   margin-left: -38%;
   transform-origin: center;
-  animation: contre-tourne 26s linear infinite;
+  animation: contre-tourne var(--duree) linear infinite;
   filter: drop-shadow(0 0 20px rgb(47 168 255 / 0.55));
+}
+
+/* Bandeau défilant : la liste est dupliquée, on la décale d'une moitié
+   exacte pour que la boucle soit invisible. */
+.bandeau-piste {
+  display: flex;
+  width: max-content;
+  animation: defile 38s linear infinite;
+}
+
+@keyframes defile {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes tourne {
@@ -417,6 +443,7 @@
   .anim-derive,
   .anim-halo,
   .anim-onde,
+  .bandeau-piste,
   .rt-fil {
     animation: none;
   }

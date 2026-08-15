@@ -1,5 +1,6 @@
 import { asset, liens, site } from "@/lib/site";
 import { BordGlace } from "./BordGlace";
+import { EclatGlace } from "./EclatGlace";
 import { Soundboard } from "./Soundboard";
 
 const specs = [
@@ -20,6 +21,10 @@ export function Hero() {
         aria-hidden="true"
         className="anim-derive absolute inset-x-0 -top-[25%] h-[65%] bg-[radial-gradient(45%_60%_at_30%_45%,rgb(127_231_242/0.14),transparent_70%)] blur-[40px]"
       />
+
+      {/* Éclats de banquise à la dérive, dans les marges des grands écrans. */}
+      <EclatGlace className="top-[24%] left-[3%] hidden xl:block" duree="34s" />
+      <EclatGlace className="right-[4%] bottom-[20%] hidden xl:block" duree="46s" />
 
       <div className="conteneur relative z-3 grid items-center gap-[clamp(36px,5vw,64px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <div>

@@ -36,8 +36,7 @@ export const liens = {
 } as const;
 
 export const sections = [
-  { href: "#moteur", label: "Moteur" },
-  { href: "#routage", label: "Double sortie" },
-  { href: "#editeur", label: "Éditeur" },
+  { href: "#moteur", label: "Le moteur" },
+  { href: "#editeur", label: "L'éditeur" },
   { href: "#installation", label: "Installation" },
 ] as const;

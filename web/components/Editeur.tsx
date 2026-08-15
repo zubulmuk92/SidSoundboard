@@ -34,7 +34,7 @@ export function Editeur() {
   return (
     <section id="editeur" className="section">
       <div className="conteneur">
-        <p className="eyebrow reveal">Dans la boîte</p>
+        <p className="eyebrow reveal">Dans la caverne</p>
         <h2 className="titre-section reveal">Chaque son se règle, se coupe et se garde intact.</h2>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

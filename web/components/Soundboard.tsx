@@ -162,24 +162,24 @@ export function Soundboard({ sid }: { sid: string }) {
         <canvas ref={vizRef} aria-hidden="true" className="h-14 w-full" />
 
         <div className="mt-4 flex items-center justify-between gap-4">
-          <div className="relative w-48 flex-none">
+          <div className="relative w-24 flex-none">
             <Image
               src={sid}
               alt="Sid, la mascotte de SidSoundboard, casque sur les oreilles"
               width={677}
               height={369}
               priority
-              className="block h-auto w-48"
+              className="block h-auto w-24"
             />
             {enLecture && (
               <>
                 <span
                   aria-hidden="true"
-                  className="anim-onde absolute top-[52%] left-1/2 -mt-[75px] -ml-[75px] h-[150px] w-[150px] rounded-full border border-gel"
+                  className="anim-onde absolute top-[52%] left-1/2 -mt-[46px] -ml-[46px] h-[92px] w-[92px] rounded-full border border-gel"
                 />
                 <span
                   aria-hidden="true"
-                  className="anim-onde absolute top-[52%] left-1/2 -mt-[75px] -ml-[75px] h-[150px] w-[150px] rounded-full border border-gel [animation-delay:0.38s]"
+                  className="anim-onde absolute top-[52%] left-1/2 -mt-[46px] -ml-[46px] h-[92px] w-[92px] rounded-full border border-gel [animation-delay:0.38s]"
                 />
               </>
             )}

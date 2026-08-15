@@ -1,3 +1,5 @@
+import { SchemaRoutage } from "./SchemaRoutage";
+
 const autres = [
   "Le fichier est chargé en RAM",
   "Volume et vitesse recalculés à chaque lecture",
@@ -23,7 +25,7 @@ export function Moteur() {
   return (
     <section id="moteur" className="section">
       <div className="conteneur">
-        <p className="eyebrow reveal">Le moteur</p>
+        <p className="eyebrow reveal">Sous la banquise</p>
         <h2 className="titre-section reveal">Rien à calculer au moment où ça joue.</h2>
         <p className="chapo reveal">
           La quasi-totalité des soundboards applique le volume, la vitesse et les effets en temps réel,
@@ -78,6 +80,8 @@ export function Moteur() {
             </div>
           ))}
         </dl>
+
+        <SchemaRoutage />
       </div>
     </section>
   );

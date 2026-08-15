@@ -1,5 +1,6 @@
-import { Editeur } from "@/components/Editeur";
 import { AppelFinal } from "@/components/AppelFinal";
+import { Bandeau } from "@/components/Bandeau";
+import { Editeur } from "@/components/Editeur";
 import { Hero } from "@/components/Hero";
 import { Installation } from "@/components/Installation";
 import { Moteur } from "@/components/Moteur";
@@ -7,7 +8,6 @@ import { Nav } from "@/components/Nav";
 import { Neige } from "@/components/Neige";
 import { PiedDePage } from "@/components/PiedDePage";
 import { Revelations } from "@/components/Revelations";
-import { Routage } from "@/components/Routage";
 
 export default function Page() {
   return (
@@ -26,7 +26,7 @@ export default function Page() {
       <main id="contenu">
         <Hero />
         <Moteur />
-        <Routage />
+        <Bandeau />
         <Editeur />
         <Installation />
         <AppelFinal />
