@@ -4,9 +4,9 @@ import { asset, liens, sections, site } from "@/lib/site";
 export function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-gel/10 bg-nuit/70 backdrop-blur-[14px]">
-      <div className="conteneur flex items-center gap-7 py-3">
-        <a href="#haut" className="flex items-center gap-2.5 font-display text-[21px] font-black uppercase">
-          <Image src={asset("/sid.png")} alt="" width={677} height={369} className="h-auto w-10" priority />
+      <div className="conteneur flex items-center gap-7 py-2.5">
+        <a href="#haut" className="flex items-center gap-3 font-display text-[23px] font-black uppercase">
+          <Image src={asset("/sid.png")} alt="" width={677} height={369} className="h-auto w-20" priority />
           <span>{site.nom}</span>
         </a>
 

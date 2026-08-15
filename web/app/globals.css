@@ -315,17 +315,19 @@
   transform: rotateX(-90deg) translateZ(calc(clamp(190px, 26vw, 260px) / 2));
 }
 
+/* La mascotte est un plan unique au centre du bloc. Elle contre-tourne
+   exactement à l'inverse du cube — même durée, même courbe — donc elle
+   reste face à la caméra pendant que la glace tourne autour d'elle. */
 .prisonnier {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 68%;
+  width: 76%;
   height: auto;
-  translate: -50% -50%;
-  filter: drop-shadow(0 0 18px rgb(47 168 255 / 0.5));
-}
-.prisonnier-croix {
-  transform: rotateY(90deg);
+  margin-left: -38%;
+  transform-origin: center;
+  animation: contre-tourne 26s linear infinite;
+  filter: drop-shadow(0 0 20px rgb(47 168 255 / 0.55));
 }
 
 @keyframes tourne {
@@ -334,6 +336,16 @@
   }
   to {
     transform: rotateX(-16deg) rotateY(360deg);
+  }
+}
+
+/* Inverse exact de `tourne` : rotateY opposé, puis rotateX compensatoire. */
+@keyframes contre-tourne {
+  from {
+    transform: translateY(-50%) rotateY(0deg) rotateX(16deg);
+  }
+  to {
+    transform: translateY(-50%) rotateY(-360deg) rotateX(16deg);
   }
 }
 
@@ -412,6 +424,10 @@
   .glacon {
     animation: none;
     transform: rotateX(-16deg) rotateY(-28deg);
+  }
+  .prisonnier {
+    animation: none;
+    transform: translateY(-50%) rotateY(28deg) rotateX(16deg);
   }
   .btn:hover,
   .dalle:hover,

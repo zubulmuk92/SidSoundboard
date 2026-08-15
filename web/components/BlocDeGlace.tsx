@@ -2,8 +2,9 @@
 
 /** Sid pris dans un bloc de banquise, en 3D.
  *
- *  Six facettes givrées en CSS `preserve-3d`, et la mascotte sur deux plans
- *  croisés pour qu'elle reste visible quel que soit l'angle de rotation.
+ *  Six facettes givrées en CSS `preserve-3d`. La mascotte est un plan unique
+ *  qui contre-tourne à l'inverse du cube, donc elle fait toujours face à la
+ *  caméra pendant que la glace tourne autour d'elle.
  *  `next/image` n'apporterait rien ici : la taille est fixée par le CSS et
  *  l'élément est purement décoratif. */
 export function BlocDeGlace({ sid }: { sid: string }) {
@@ -17,7 +18,6 @@ export function BlocDeGlace({ sid }: { sid: string }) {
         <span className="facette facette-haut" />
         <span className="facette facette-bas" />
         <img className="prisonnier" src={sid} alt="" />
-        <img className="prisonnier prisonnier-croix" src={sid} alt="" />
       </div>
     </div>
   );

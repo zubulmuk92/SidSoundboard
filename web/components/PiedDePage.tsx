@@ -36,9 +36,9 @@ export function PiedDePage() {
     <footer className="relative z-3 border-t border-gel/12 bg-[#040B12]">
       <div className="conteneur grid gap-10 py-14 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] md:gap-8">
         <div>
-          <div className="flex items-center gap-2.5">
-            <Image src={asset("/sid.png")} alt="" width={677} height={369} className="h-auto w-11" />
-            <span className="font-display text-[21px] font-black uppercase">{site.nom}</span>
+          <div className="flex items-center gap-3">
+            <Image src={asset("/sid.png")} alt="" width={677} height={369} className="h-auto w-22" />
+            <span className="font-display text-[23px] font-black uppercase">{site.nom}</span>
           </div>
           <p className="mt-4 max-w-[34ch] text-[14px] text-brume">
             La table de mixage des streamers pressés : vos sons partent sur Discord sans coûter un seul

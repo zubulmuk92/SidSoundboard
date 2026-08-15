@@ -156,39 +156,43 @@ export function Soundboard({ sid }: { sid: string }) {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-gel/12 pt-6">
-        <canvas ref={vizRef} aria-hidden="true" className="order-3 h-14 w-full min-w-0 sm:order-none sm:flex-1" />
+      {/* La waveform prend toute la largeur, la mascotte et la touche panique
+          se partagent la ligne du dessous. */}
+      <div className="border-t border-gel/12 pt-6">
+        <canvas ref={vizRef} aria-hidden="true" className="h-14 w-full" />
 
-        <div className="relative w-24 flex-none">
-          <Image
-            src={sid}
-            alt="Sid, la mascotte de SidSoundboard, casque sur les oreilles"
-            width={677}
-            height={369}
-            priority
-            className="block h-auto w-24"
-          />
-          {enLecture && (
-            <>
-              <span
-                aria-hidden="true"
-                className="anim-onde absolute top-[52%] left-1/2 -mt-[46px] -ml-[46px] h-[92px] w-[92px] rounded-full border border-gel"
-              />
-              <span
-                aria-hidden="true"
-                className="anim-onde absolute top-[52%] left-1/2 -mt-[46px] -ml-[46px] h-[92px] w-[92px] rounded-full border border-gel [animation-delay:0.38s]"
-              />
-            </>
-          )}
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="relative w-48 flex-none">
+            <Image
+              src={sid}
+              alt="Sid, la mascotte de SidSoundboard, casque sur les oreilles"
+              width={677}
+              height={369}
+              priority
+              className="block h-auto w-48"
+            />
+            {enLecture && (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="anim-onde absolute top-[52%] left-1/2 -mt-[75px] -ml-[75px] h-[150px] w-[150px] rounded-full border border-gel"
+                />
+                <span
+                  aria-hidden="true"
+                  className="anim-onde absolute top-[52%] left-1/2 -mt-[75px] -ml-[75px] h-[150px] w-[150px] rounded-full border border-gel [animation-delay:0.38s]"
+                />
+              </>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={couper}
+            className="flex-none cursor-pointer rounded-lg border border-azur/50 px-3.5 py-2.5 font-mono text-[11px] tracking-[0.12em] text-azur uppercase transition-colors hover:bg-azur hover:text-azur-texte"
+          >
+            Panique
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={couper}
-          className="flex-none cursor-pointer rounded-lg border border-azur/50 px-3.5 py-2.5 font-mono text-[11px] tracking-[0.12em] text-azur uppercase transition-colors hover:bg-azur hover:text-azur-texte"
-        >
-          Panique
-        </button>
       </div>
 
       <p className="mt-5 font-mono text-[10.5px] leading-normal text-brume/70">
