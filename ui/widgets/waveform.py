@@ -5,6 +5,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from ui.theme import ACCENT, BG_HOVER
+
 
 def load_peaks(peaks_path):
     if not peaks_path or not os.path.exists(peaks_path):
@@ -20,12 +22,12 @@ def load_peaks(peaks_path):
 class WaveformWidget(QWidget):
     seek_requested = Signal(float)
 
-    def __init__(self, color="#FF8A3D", interactive=False, parent=None):
+    def __init__(self, color=None, interactive=False, parent=None):
         super().__init__(parent)
         self.peaks = []
         self.progress = 0.0
-        self.base_color = QColor("#3A3D44")
-        self.played_color = QColor(color)
+        self.base_color = QColor(BG_HOVER)
+        self.played_color = QColor(color or ACCENT)
         self.interactive = interactive
         self.setMinimumHeight(28)
 
