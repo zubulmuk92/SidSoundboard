@@ -37,16 +37,17 @@ Vous voulez entendre le son doucement dans votre casque, mais l'envoyer très fo
 - Interface disponible en **français** et en **anglais** (Réglages → Langue).
   Le changement est immédiat, sans redémarrage.
 
-## 🎬 Mode Scène
-La Bibliothèque sert à gérer vos sons ; la **Scène** sert à les jouer. Une
+## 🎬 Pads
+La Bibliothèque sert à gérer vos sons ; l'écran **Pads** sert à les jouer. Une
 grille de gros pads, une seule action possible : déclencher. Le pad en
 cours de lecture affiche sa progression.
 
-## 📁 Profils
+## 📁 Scènes
 Un jeu, un stream et un appel privé n'appellent pas les mêmes sons. Chaque
-profil a sa propre liste et ses propres raccourcis — la même touche F1
-peut servir dans deux contextes. Le sélecteur est en haut de la barre
-latérale.
+**scène** a sa propre liste et ses propres raccourcis — la même touche F1
+peut servir dans deux contextes. Le sélecteur « Scène active » est en haut
+de la barre latérale, avec le bouton **+ Nouvelle scène** juste en dessous ;
+renommer et supprimer se font dans **Réglages → Scènes**.
 
 ## 💾 Où sont mes données ?
 À côté de l'exécutable, s'il peut y écrire (application portable), sinon

@@ -1,21 +1,27 @@
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel,
-    QPushButton, QSlider, QSpinBox, QVBoxLayout, QWidget
+    QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QInputDialog,
+    QLabel, QMessageBox, QPushButton, QSlider, QSpinBox, QVBoxLayout, QWidget
 )
+
+import profiles
 
 import i18n
 from i18n import tr
-from ui.theme import TEXT_MAIN
+from ui.theme import TEXT_MAIN, TEXT_MUTED
 
 
 class SettingsView(QWidget):
-    def __init__(self, audio_manager, config, on_save, on_bind_panic, parent=None):
+    def __init__(self, audio_manager, config, on_save, on_bind_panic, parent=None,
+                 on_scenes_changed=None):
         super().__init__(parent)
         self.audio_manager = audio_manager
         self.config = config
         self.on_save = on_save
         self.on_bind_panic = on_bind_panic
+        # Scene edits are structural, so they apply at once rather than
+        # waiting for Save like the audio settings do.
+        self.on_scenes_changed = on_scenes_changed or (lambda: None)
         self._build()
 
     def _build(self):
@@ -136,7 +142,101 @@ class SettingsView(QWidget):
         form_layout.addWidget(self.btn_save, row, 1)
 
         layout.addWidget(form)
+        layout.addWidget(self._build_scene_section())
         layout.addStretch()
+
+    def _build_scene_section(self):
+        section = QFrame()
+        section.setObjectName("SoundCard")
+        layout = QVBoxLayout(section)
+        layout.setSpacing(10)
+
+        title = QLabel(tr("scene.section"))
+        title.setStyleSheet(f"font-size: 15px; font-weight: 600; color: {TEXT_MAIN};")
+        layout.addWidget(title)
+
+        hint = QLabel(tr("scene.hint"))
+        hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        row = QHBoxLayout()
+        self.cb_scene = QComboBox()
+        self.refresh_scenes()
+        row.addWidget(self.cb_scene)
+
+        btn_rename = QPushButton(tr("scene.rename"))
+        btn_rename.clicked.connect(self._rename_scene)
+        row.addWidget(btn_rename)
+
+        btn_delete = QPushButton(tr("scene.delete"))
+        btn_delete.setProperty("class", "danger")
+        btn_delete.clicked.connect(self._delete_scene)
+        row.addWidget(btn_delete)
+
+        layout.addLayout(row)
+        return section
+
+    def refresh_scenes(self):
+        """Re-reads the scene list. Scenes can be created from the sidebar
+        while this screen is built but not visible, so it cannot rely on
+        the list it saw at construction time."""
+        selected = self.cb_scene.currentData()
+        self.cb_scene.blockSignals(True)
+        self.cb_scene.clear()
+        for profile in self.config.get("profiles", []):
+            self.cb_scene.addItem(profile["name"], profile["id"])
+        index = self.cb_scene.findData(selected)
+        if index >= 0:
+            self.cb_scene.setCurrentIndex(index)
+        self.cb_scene.blockSignals(False)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.refresh_scenes()
+
+    def _selected_scene(self):
+        scene_id = self.cb_scene.currentData()
+        for profile in self.config.get("profiles", []):
+            if profile["id"] == scene_id:
+                return profile
+        return None
+
+    def _rename_scene(self):
+        scene = self._selected_scene()
+        if not scene:
+            return
+        name, ok = QInputDialog.getText(
+            self, tr("scene.rename"), tr("scene.rename_prompt"), text=scene["name"]
+        )
+        if not ok or not name.strip():
+            return
+        profiles.rename_profile(self.config, scene["id"], name.strip())
+        self.refresh_scenes()
+        self.on_scenes_changed()
+
+    def _delete_scene(self):
+        scene = self._selected_scene()
+        if not scene:
+            return
+
+        if len(self.config.get("profiles", [])) <= 1:
+            QMessageBox.information(
+                self, tr("scene.section"), tr("scene.cannot_delete_last")
+            )
+            return
+
+        reply = QMessageBox.question(
+            self, tr("scene.delete"),
+            tr("scene.delete_confirm", name=scene["name"], count=len(scene.get("sounds", []))),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+        if reply == QMessageBox.No:
+            return
+
+        profiles.delete_profile(self.config, scene["id"])
+        self.refresh_scenes()
+        self.on_scenes_changed()
 
     def _on_dual_toggled(self, checked):
         self.cb_second_device.setEnabled(checked)

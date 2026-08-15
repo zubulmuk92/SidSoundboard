@@ -148,6 +148,15 @@ QSlider::handle:horizontal {{ background: {ACCENT}; width: 14px; margin-top: -4p
         stop:0 {BG_HOVER}, stop:0.45 {BG_PANEL}, stop:1 {BG_APP});
     border-right: 1px solid {EDGE};
 }}
+#Sidebar #SidebarCaption {{
+    color: {TEXT_MUTED}; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+}}
+#Sidebar #NewSceneButton {{
+    background-color: {BG_APP}; color: {ACCENT}; border: 1px solid {EDGE};
+    border-radius: 6px; padding: 5px 8px; text-align: center; font-size: 12px;
+}}
+#Sidebar #NewSceneButton:hover {{ border: 1px solid {ACCENT}; background-color: {BG_HOVER}; }}
+
 #Sidebar QPushButton {{ background-color: transparent; border: none; text-align: left; padding-left: 20px; font-size: 14px; }}
 #Sidebar QPushButton:hover {{ background-color: {BG_HOVER}; }}
 #Sidebar QPushButton:checked {{ background-color: {BG_APP}; color: {ACCENT}; border-left: 3px solid {ACCENT}; border-radius: 0px; }}

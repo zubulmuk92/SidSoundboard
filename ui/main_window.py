@@ -72,28 +72,36 @@ class AppGUI(QMainWindow):
         side_layout.addWidget(title)
         side_layout.addSpacing(30)
 
-        # The profile selector sits above navigation: switching profile is a
+        # The scene selector sits above navigation: switching scene is a
         # change of context for the whole app, not a setting among others.
-        profile_row = QWidget()
-        profile_layout = QHBoxLayout(profile_row)
-        profile_layout.setContentsMargins(20, 0, 20, 0)
-        profile_layout.setSpacing(6)
+        # It is labelled, and the create action spells itself out - a bare
+        # "+" with a tooltip left people hunting for where scenes are made.
+        scene_block = QWidget()
+        scene_layout = QVBoxLayout(scene_block)
+        scene_layout.setContentsMargins(20, 0, 20, 0)
+        scene_layout.setSpacing(4)
+
+        scene_caption = QLabel(tr("scene.label").upper())
+        scene_caption.setObjectName("SidebarCaption")
+        scene_layout.addWidget(scene_caption)
 
         self.cb_profile = QComboBox()
+        self.cb_profile.setToolTip(tr("scene.hint"))
         self.cb_profile.currentIndexChanged.connect(self._on_profile_selected)
-        profile_layout.addWidget(self.cb_profile)
+        scene_layout.addWidget(self.cb_profile)
 
-        btn_new_profile = QPushButton("+")
-        btn_new_profile.setFixedWidth(30)
-        btn_new_profile.setToolTip(tr("profile.new"))
+        btn_new_profile = QPushButton(tr("scene.new"))
+        btn_new_profile.setObjectName("NewSceneButton")
+        btn_new_profile.setToolTip(tr("scene.hint"))
         btn_new_profile.clicked.connect(self._create_profile)
-        profile_layout.addWidget(btn_new_profile)
-        side_layout.addWidget(profile_row)
+        scene_layout.addWidget(btn_new_profile)
+
+        side_layout.addWidget(scene_block)
         side_layout.addSpacing(20)
 
         self.nav_buttons = []
         for index, (key, icon) in enumerate((
-            ("nav.scene", "play.svg"),
+            ("nav.pads", "play.svg"),
             ("nav.library", "lib.svg"),
             ("nav.settings", "settings.svg"),
             ("nav.help", "add.svg"),
@@ -142,7 +150,8 @@ class AppGUI(QMainWindow):
         self.stacked_widget.addWidget(self.library_view)
 
         self.settings_view = SettingsView(
-            self.audio_manager, self.config, self._on_settings_saved, self._bind_panic_key
+            self.audio_manager, self.config, self._on_settings_saved, self._bind_panic_key,
+            on_scenes_changed=self._on_scenes_changed,
         )
         self.stacked_widget.addWidget(self.settings_view)
 
@@ -206,6 +215,9 @@ class AppGUI(QMainWindow):
         if index >= 0:
             self.cb_profile.setCurrentIndex(index)
         self.cb_profile.blockSignals(False)
+        settings = getattr(self, "settings_view", None)
+        if settings is not None:
+            settings.refresh_scenes()
 
     def _on_profile_selected(self, index):
         profile_id = self.cb_profile.itemData(index)
@@ -219,11 +231,19 @@ class AppGUI(QMainWindow):
         self.scene_view.refresh()
 
     def _create_profile(self):
-        name, ok = QInputDialog.getText(self, tr("profile.new"), tr("profile.new_prompt"))
+        name, ok = QInputDialog.getText(self, tr("scene.new"), tr("scene.new_prompt"))
         if not ok or not name.strip():
             return
         created = profiles.create_profile(self.config, name.strip())
         profiles.set_active(self.config, created["id"])
+        config_manager.save_config(self.config)
+        self._refresh_profile_combo()
+        self.hotkey_manager.load_hotkeys(self.config)
+        self.library_view.refresh()
+        self.scene_view.refresh()
+
+    def _on_scenes_changed(self):
+        """A scene was renamed or deleted from the Settings screen."""
         config_manager.save_config(self.config)
         self._refresh_profile_combo()
         self.hotkey_manager.load_hotkeys(self.config)
