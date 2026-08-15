@@ -1,4 +1,3 @@
-import yt_dlp
 import sys
 import os
 import threading
@@ -6,6 +5,7 @@ import threading
 def download_youtube_audio_async(url, output_dir, callback, progress_callback):
     def worker():
         try:
+            import yt_dlp
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
                 
