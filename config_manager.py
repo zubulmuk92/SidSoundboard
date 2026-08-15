@@ -6,7 +6,10 @@ import profiles
 
 # Bumped whenever the stored shape changes. A config without the key is
 # version 1 — the shape that shipped before migrations were versioned.
-CONFIG_VERSION = 2
+#   1 -> 2  flat sound list becomes a profile, dead ducking key retired
+#   2 -> 3  sounds still holding their path under the pre-rewrite `file`
+#           key are recovered (they were invisible, audio intact on disk)
+CONFIG_VERSION = 3
 
 DEFAULT_CONFIG = {
     "config_version": CONFIG_VERSION,
@@ -61,6 +64,41 @@ def _backfill_sounds(config):
     return config
 
 
+# Keys a pre-rewrite version wrote, superseded by the current schema.
+_LEGACY_SOUND_KEYS = ("cached_file", "cached_file_primary", "cached_file_secondary",
+                      "device", "second_device", "audio_ducking")
+
+# "Aucun" was an older unbound-hotkey sentinel; only "None" was ever filtered.
+_LEGACY_HOTKEY_SENTINELS = ("Aucun", "aucun", "")
+
+
+def _recover_legacy_sounds(config):
+    """
+    Rescues sounds written before the UI rewrite. They stored their path
+    under `file`; the rewrite switched to `filename` and fixed the readers
+    but never migrated the data, so those sounds have been silently
+    invisible ever since — their audio files are still on disk.
+    """
+    for sound in profiles.all_sounds(config):
+        if not sound.get("filename") and sound.get("file"):
+            sound["filename"] = sound["file"]
+        sound.pop("file", None)
+
+        if sound.get("hotkey") in _LEGACY_HOTKEY_SENTINELS:
+            sound["hotkey"] = "None"
+
+        for key in _LEGACY_SOUND_KEYS:
+            sound.pop(key, None)
+    return config
+
+
+def _drop_pathless_sounds(config):
+    """Entries with no usable path at all cannot be played or repaired."""
+    for profile in config.get("profiles", []):
+        profile["sounds"] = [s for s in profile.get("sounds", []) if s.get("filename")]
+    return config
+
+
 def _absolutize_paths(config, base_dir):
     """
     Older configs stored `filename` relative to the working directory while
@@ -93,8 +131,24 @@ def _migrate_v1_to_v2(config, base_dir):
     _absolutize_paths(config, base_dir)
 
 
+def _migrate_v2_to_v3(config, base_dir):
+    """
+    v2 -> v3: repairs sounds the UI rewrite left behind.
+
+    This could not live in v1 -> v2: configs written by the first version
+    that shipped profiles are already stamped 2, so a fix folded into that
+    step would never run for them — which is exactly the case this
+    migration exists to cover.
+    """
+    profiles.ensure_profiles(config)
+    _recover_legacy_sounds(config)
+    _drop_pathless_sounds(config)
+    _backfill_sounds(config)
+    _absolutize_paths(config, base_dir)
+
+
 # (version the config is at or below, migration to run)
-MIGRATIONS = [(1, _migrate_v1_to_v2)]
+MIGRATIONS = [(1, _migrate_v1_to_v2), (2, _migrate_v2_to_v3)]
 
 
 def migrate(config, base_dir=None):

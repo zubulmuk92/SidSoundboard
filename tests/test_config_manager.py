@@ -47,14 +47,16 @@ class TestMigrateV1ToV2(MigrationCase):
         self.assertNotIn("main_volume", config)
 
     def test_effect_defaults_are_backfilled(self):
-        config = config_manager.migrate({"sounds": [{"id": "a"}]}, self.tmpdir)
+        config = config_manager.migrate(
+            {"sounds": [{"id": "a", "filename": "a.wav"}]}, self.tmpdir)
         sound = profiles.active_sounds(config)[0]
         self.assertEqual(sound["volume"], 100)
         self.assertIsNone(sound["trim_end_sec"])
 
     def test_per_sound_fades_inherit_the_global_values(self):
         config = config_manager.migrate(
-            {"fade_in_ms": 300, "fade_out_ms": 400, "sounds": [{"id": "a"}]}, self.tmpdir
+            {"fade_in_ms": 300, "fade_out_ms": 400,
+             "sounds": [{"id": "a", "filename": "a.wav"}]}, self.tmpdir
         )
         sound = profiles.active_sounds(config)[0]
         self.assertEqual(sound["fade_in_ms"], 300)
@@ -62,7 +64,8 @@ class TestMigrateV1ToV2(MigrationCase):
 
     def test_existing_values_survive(self):
         config = config_manager.migrate(
-            {"sounds": [{"id": "a", "volume": 250, "bass_boost": 40}]}, self.tmpdir
+            {"sounds": [{"id": "a", "filename": "a.wav", "volume": 250,
+                         "bass_boost": 40}]}, self.tmpdir
         )
         sound = profiles.active_sounds(config)[0]
         self.assertEqual(sound["volume"], 250)
@@ -164,6 +167,50 @@ class TestLegacyPickup(unittest.TestCase):
     def test_the_legacy_file_is_left_in_place(self):
         config_manager.load_config()
         self.assertTrue(os.path.exists(os.path.join(self.legacy_dir, "config.json")))
+
+
+
+class TestLegacyRecovery(MigrationCase):
+    """Sounds written before the UI rewrite stored their path under `file`.
+    The rewrite fixed the readers but never migrated the data, leaving them
+    invisible while their audio sat on disk."""
+
+    def _migrate(self, sound):
+        config = config_manager.migrate({"sounds": [sound]}, self.tmpdir)
+        return profiles.active_sounds(config)
+
+    def test_the_file_key_is_recovered_into_filename(self):
+        sounds = self._migrate({"id": "a", "name": "Vieux", "file": "C:/sounds/old.mp3"})
+        self.assertEqual(len(sounds), 1)
+        self.assertEqual(sounds[0]["filename"], "C:/sounds/old.mp3")
+
+    def test_the_dead_file_key_is_dropped(self):
+        sounds = self._migrate({"id": "a", "file": "C:/sounds/old.mp3"})
+        self.assertNotIn("file", sounds[0])
+
+    def test_an_existing_filename_wins_over_the_legacy_key(self):
+        sounds = self._migrate({"id": "a", "filename": "C:/new.wav", "file": "C:/old.mp3"})
+        self.assertEqual(sounds[0]["filename"], "C:/new.wav")
+
+    def test_the_aucun_hotkey_sentinel_is_normalised(self):
+        sounds = self._migrate({"id": "a", "file": "C:/a.mp3", "hotkey": "Aucun"})
+        self.assertEqual(sounds[0]["hotkey"], "None")
+
+    def test_superseded_per_sound_keys_are_dropped(self):
+        sounds = self._migrate({
+            "id": "a", "file": "C:/a.mp3", "cached_file": "C:/a_v200_s100.mp3",
+            "device": "CABLE Input", "second_device": "Aucun", "audio_ducking": True,
+        })
+        for key in ("cached_file", "device", "second_device", "audio_ducking"):
+            self.assertNotIn(key, sounds[0], key)
+
+    def test_an_entry_with_no_path_at_all_is_dropped(self):
+        self.assertEqual(self._migrate({"id": "a", "name": "Fantôme"}), [])
+
+    def test_recovery_leaves_current_sounds_untouched(self):
+        sounds = self._migrate({"id": "a", "filename": "C:/a.wav", "hotkey": "f1"})
+        self.assertEqual(sounds[0]["hotkey"], "f1")
+        self.assertEqual(sounds[0]["filename"], "C:/a.wav")
 
 
 if __name__ == "__main__":
