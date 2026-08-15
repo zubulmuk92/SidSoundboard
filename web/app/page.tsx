@@ -1,5 +1,6 @@
 import { AppelFinal } from "@/components/AppelFinal";
 import { Editeur } from "@/components/Editeur";
+import { Frise } from "@/components/Frise";
 import { Hero } from "@/components/Hero";
 import { Horizon } from "@/components/Horizon";
 import { Installation } from "@/components/Installation";
@@ -29,6 +30,7 @@ export default function Page() {
         <Horizon />
         <Editeur />
         <Installation />
+        <Frise />
         <AppelFinal />
       </main>
 
