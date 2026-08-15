@@ -16,7 +16,7 @@ if sys.stderr is None:
 from config_manager import load_config
 from audio_manager import AudioManager
 from hotkey_manager import HotkeyManager
-from gui_pyside import AppGUI
+from ui.main_window import AppGUI
 import cache_manager
 
 def main():
