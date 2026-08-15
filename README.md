@@ -30,7 +30,10 @@ Vous voulez entendre le son doucement dans votre casque, mais l'envoyer très fo
   vous entendez est exactement ce que vos amis entendent.
 - Édition non destructive : le fichier original est conservé intact, vous
   pouvez revenir en arrière sur n'importe quel réglage à tout moment.
-- Thème graphite/ambre professionnel, conçu avec `PySide6` (Qt).
+- Thème « âge de glace » : bleus de glacier profonds et turquoise de
+  crevasse, conçu avec `PySide6` (Qt). Le rouge du bouton STOP est la seule
+  couleur chaude de l'interface — impossible de le rater en pleine partie.
+- S'adapte automatiquement au mode clair/sombre de Windows.
 
 ## 📦 Installation & Utilisation
 Le projet est packagé en un seul fichier `.exe` autonome.

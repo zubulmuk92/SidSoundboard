@@ -4,8 +4,9 @@ import uuid
 
 from PySide6.QtCore import Qt, QObject, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
-    QDialog, QFileDialog, QGridLayout, QHBoxLayout, QLineEdit, QMessageBox,
-    QProgressBar, QProgressDialog, QPushButton, QScrollArea, QVBoxLayout, QWidget
+    QDialog, QFileDialog, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
+    QMessageBox, QProgressBar, QProgressDialog, QPushButton, QScrollArea,
+    QVBoxLayout, QWidget
 )
 
 import config_manager
@@ -104,6 +105,12 @@ class LibraryView(QWidget):
             if child.widget():
                 child.widget().deleteLater()
 
+        if not self.filtered_sounds:
+            self.grid_layout.addWidget(self._empty_state(), 0, 0)
+            self.grid_layout.setRowStretch(1, 1)
+            self.cards = {}
+            return
+
         width = self.scroll_area.viewport().width()
         card_width = 320
         cols = max(1, width // (card_width + 15))
@@ -122,6 +129,21 @@ class LibraryView(QWidget):
             self.grid_layout.addWidget(card, row, col)
 
         self.grid_layout.setRowStretch(self.grid_layout.rowCount(), 1)
+
+    def _empty_state(self):
+        if self.sounds:
+            text = "Aucun son ne correspond à cette recherche."
+        else:
+            text = (
+                "Votre bibliothèque est vide.\n\n"
+                "Importez un fichier audio, ou collez une URL YouTube pour "
+                "télécharger un son directement."
+            )
+        label = QLabel(text)
+        label.setObjectName("EmptyState")
+        label.setAlignment(Qt.AlignCenter)
+        label.setWordWrap(True)
+        return label
 
     def _on_play(self, sound_id):
         sound = next((s for s in self.sounds if s["id"] == sound_id), None)

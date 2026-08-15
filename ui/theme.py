@@ -26,28 +26,36 @@ def _detect_windows_dark_mode():
 
 IS_DARK_MODE = _detect_windows_dark_mode()
 
+# Visual direction: ice seen from underneath. Deep meltwater blues with a
+# green cast, and an accent taken from the turquoise of a glacier crevasse
+# rather than the expected electric cyan — real glacial ice reads green.
+# Warmth is rationed to exactly one place: DANGER, so the panic control
+# reads as fire against ice.
+
 DARK_PALETTE = {
-    "BG_APP": "#121316",
-    "BG_PANEL": "#1B1D21",
-    "BG_HOVER": "#26292F",
-    "TEXT_MAIN": "#F2F1ED",
-    "TEXT_MUTED": "#8B8D93",
-    "ACCENT": "#FF8A3D",
-    "ACCENT_HOVER": "#E67227",
-    "ACCENT_TEXT": "#121316",
-    "DANGER": "#EF4444",
+    "BG_APP": "#0A141B",
+    "BG_PANEL": "#122430",
+    "BG_HOVER": "#1C3646",
+    "TEXT_MAIN": "#EAF6FA",
+    "TEXT_MUTED": "#7392A6",
+    "ACCENT": "#59E1D8",
+    "ACCENT_HOVER": "#33C9C0",
+    "ACCENT_TEXT": "#04161A",
+    "DANGER": "#FF6B5B",
+    "EDGE": "#2A4E63",
 }
 
 LIGHT_PALETTE = {
-    "BG_APP": "#F2F1ED",
+    "BG_APP": "#EAF2F5",
     "BG_PANEL": "#FFFFFF",
-    "BG_HOVER": "#E7E5E0",
-    "TEXT_MAIN": "#1B1D21",
-    "TEXT_MUTED": "#6B6D73",
-    "ACCENT": "#D35F13",
-    "ACCENT_HOVER": "#B84F0C",
+    "BG_HOVER": "#D5E5EC",
+    "TEXT_MAIN": "#0C2029",
+    "TEXT_MUTED": "#54707E",
+    "ACCENT": "#0E8C87",
+    "ACCENT_HOVER": "#0A6E6A",
     "ACCENT_TEXT": "#FFFFFF",
-    "DANGER": "#DC2626",
+    "DANGER": "#D4453A",
+    "EDGE": "#BBD3DE",
 }
 
 _PALETTE = DARK_PALETTE if IS_DARK_MODE else LIGHT_PALETTE
@@ -61,13 +69,17 @@ ACCENT = _PALETTE["ACCENT"]
 ACCENT_HOVER = _PALETTE["ACCENT_HOVER"]
 ACCENT_TEXT = _PALETTE["ACCENT_TEXT"]
 DANGER = _PALETTE["DANGER"]
+# The lit top edge of a slab of ice — used as a 1px highlight on cards.
+EDGE = _PALETTE["EDGE"]
 
+# Cold spectrum, with two warm anchors so the grid still sorts at a glance
+# mid-game: troll sounds burn, voices glow, everything else is ice.
 CATEGORY_COLORS = {
-    "Sons Troll": "#FF3366",
-    "Musiques": "#33CCFF",
-    "SFX": "#33FF99",
-    "Voix": "#FFCC00",
-    "Ambiance": "#B829FF",
+    "Sons Troll": "#FF7A59",
+    "Musiques": "#5AA9F0",
+    "SFX": "#59E1D8",
+    "Voix": "#F2C55C",
+    "Ambiance": "#A98CF0",
     "Gris": TEXT_MUTED,
 }
 
@@ -131,15 +143,21 @@ QComboBox QAbstractItemView {{ background-color: {BG_PANEL}; color: {TEXT_MAIN};
 QSlider::groove:horizontal {{ border: 1px solid {BG_PANEL}; background: {BG_APP}; height: 6px; border-radius: 3px; }}
 QSlider::handle:horizontal {{ background: {ACCENT}; width: 14px; margin-top: -4px; margin-bottom: -4px; border-radius: 7px; }}
 
-#Sidebar {{ background-color: {BG_PANEL}; border-right: 1px solid {BG_APP}; }}
+#Sidebar {{
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 {BG_HOVER}, stop:0.45 {BG_PANEL}, stop:1 {BG_APP});
+    border-right: 1px solid {EDGE};
+}}
 #Sidebar QPushButton {{ background-color: transparent; border: none; text-align: left; padding-left: 20px; font-size: 14px; }}
 #Sidebar QPushButton:hover {{ background-color: {BG_HOVER}; }}
 #Sidebar QPushButton:checked {{ background-color: {BG_APP}; color: {ACCENT}; border-left: 3px solid {ACCENT}; border-radius: 0px; }}
 
-#SoundCard {{ background-color: {BG_PANEL}; border: 1px solid {BG_APP}; border-radius: 8px; }}
+#SoundCard {{ background-color: {BG_PANEL}; border: 1px solid {EDGE}; border-radius: 8px; }}
 #SoundCard:hover {{ background-color: {BG_HOVER}; border: 1px solid {ACCENT}; }}
 
-#PlayerBar {{ background-color: {BG_PANEL}; border: 1px solid {BG_APP}; border-radius: 8px; }}
+#PlayerBar {{ background-color: {BG_PANEL}; border: 1px solid {EDGE}; border-radius: 8px; }}
+
+#EmptyState {{ color: {TEXT_MUTED}; font-size: 14px; }}
 
 QProgressBar {{ border: 1px solid {BG_APP}; border-radius: 4px; text-align: center; color: white; background: {BG_PANEL}; }}
 QProgressBar::chunk {{ background-color: {ACCENT}; width: 1px; }}
