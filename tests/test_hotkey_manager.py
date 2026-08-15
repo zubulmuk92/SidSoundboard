@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from hotkey_manager import HotkeyManager
 
@@ -45,6 +45,27 @@ class TestPlaySoundCallback(unittest.TestCase):
         _, kwargs = audio_manager.toggle_play_pause.call_args
         self.assertEqual(kwargs["filepath_primary"], "C:/sounds/test.wav")
         self.assertEqual(kwargs["sound_id"], "abc123")
+
+
+class TestPanicHotkeyRegistration(unittest.TestCase):
+    def test_uses_panic_hotkey_key_and_skips_none_sentinel(self):
+        audio_manager = MagicMock()
+
+        with patch("hotkey_manager.keyboard.on_press_key") as mock_on_press_key:
+            manager = HotkeyManager(audio_manager, {"panic_hotkey": "f9", "sounds": []})
+            manager.load_hotkeys(manager.config)
+            mock_on_press_key.assert_called_once()
+            self.assertEqual(mock_on_press_key.call_args[0][0], "f9")
+
+        with patch("hotkey_manager.keyboard.on_press_key") as mock_on_press_key:
+            manager = HotkeyManager(audio_manager, {"panic_hotkey": "None", "sounds": []})
+            manager.load_hotkeys(manager.config)
+            mock_on_press_key.assert_not_called()
+
+        with patch("hotkey_manager.keyboard.on_press_key") as mock_on_press_key:
+            manager = HotkeyManager(audio_manager, {"sounds": []})
+            manager.load_hotkeys(manager.config)
+            mock_on_press_key.assert_not_called()
 
 
 if __name__ == "__main__":

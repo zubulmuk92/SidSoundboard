@@ -17,11 +17,12 @@ from ui.widgets.waveform import load_peaks
 
 
 class AppGUI(QMainWindow):
-    def __init__(self, audio_manager, hotkey_manager):
+    def __init__(self, audio_manager, hotkey_manager, config):
         super().__init__()
         self.audio_manager = audio_manager
         self.hotkey_manager = hotkey_manager
-        self.config = config_manager.load_config()
+        self.config = config
+        self._last_timeline_sound_id = None
         self.audio_manager.set_fade_durations(
             self.config.get("fade_in_ms", 150), self.config.get("fade_out_ms", 150)
         )
@@ -89,6 +90,7 @@ class AppGUI(QMainWindow):
         self.library_view = LibraryView(self.config)
         self.library_view.sound_played.connect(self._play_sound)
         self.library_view.hotkey_bind_requested.connect(self._bind_hotkey)
+        self.library_view.sounds_changed.connect(self._on_sounds_changed)
         self.stacked_widget.addWidget(self.library_view)
 
         self.settings_view = SettingsView(
@@ -136,16 +138,23 @@ class AppGUI(QMainWindow):
     def _update_timeline(self):
         prog = self.audio_manager.get_focused_progress()
         if not prog:
+            self._last_timeline_sound_id = None
             self.player_bar.update_progress("", 0, 0, None)
             return
 
+        sound_id = prog.get("sound_id")
         peaks = None
-        card = self.library_view.cards.get(prog.get("sound_id"))
+        card = self.library_view.cards.get(sound_id)
         if card:
-            peaks_path = (card.sound.get("filename") or "") + ".peaks.json"
-            peaks = load_peaks(peaks_path)
             if prog["duration"] > 0:
                 card.set_playback_progress(prog["current"] / prog["duration"])
+
+        if sound_id != self._last_timeline_sound_id:
+            self._last_timeline_sound_id = sound_id
+            if card:
+                peaks = card.waveform.peaks
+            # else: sound not currently rendered (filtered/scrolled out of view) -
+            # leave peaks as None and let the player bar keep its last-known peaks.
 
         self.player_bar.update_progress(prog["name"], prog["current"], prog["duration"], peaks)
 
@@ -190,7 +199,11 @@ class AppGUI(QMainWindow):
 
     def _on_settings_saved(self, config):
         self.config = config
+        config_manager.save_config(config)
         self.audio_manager.set_fade_durations(
             config.get("fade_in_ms", 150), config.get("fade_out_ms", 150)
         )
         self.hotkey_manager.load_hotkeys(config)
+
+    def _on_sounds_changed(self):
+        self.hotkey_manager.load_hotkeys(self.config)

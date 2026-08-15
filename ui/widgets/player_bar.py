@@ -9,7 +9,7 @@ class PlayerBar(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("SoundCard")
+        self.setObjectName("PlayerBar")
         self.setFixedHeight(60)
         layout = QHBoxLayout(self)
 

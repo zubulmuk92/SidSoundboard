@@ -41,7 +41,7 @@ def main():
     if not qt_app:
         qt_app = QApplication(sys.argv)
 
-    app = AppGUI(audio_manager, hotkey_manager)
+    app = AppGUI(audio_manager, hotkey_manager, config)
     
     # Configuration du System Tray
     import pystray

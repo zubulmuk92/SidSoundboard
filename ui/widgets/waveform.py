@@ -30,12 +30,16 @@ class WaveformWidget(QWidget):
         self.setMinimumHeight(28)
 
     def set_peaks(self, peaks):
-        self.peaks = peaks or []
-        self.update()
+        peaks = peaks or []
+        if peaks != self.peaks:
+            self.peaks = peaks
+            self.update()
 
     def set_progress(self, progress):
-        self.progress = max(0.0, min(1.0, progress))
-        self.update()
+        progress = max(0.0, min(1.0, progress))
+        if progress != self.progress:
+            self.progress = progress
+            self.update()
 
     def mousePressEvent(self, event):
         if self.interactive and self.width() > 0:
