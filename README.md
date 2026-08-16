@@ -1,69 +1,173 @@
-# SidSoundboard - Édition Studio Ultime
+<div align="center">
 
-SidSoundboard est une table de mixage/soundboard développée en Python conçue spécifiquement pour les streamers, gamers et utilisateurs de Discord. L'application met un point d'honneur sur un design minimaliste "Studio" et une **optimisation radicale des performances**.
+# SidSoundboard
 
-## 🚀 Le Secret de l'Optimisation "Zéro Latence"
+**La soundboard Windows qui ne touche pas à vos FPS.**
 
-Contrairement à 99% des soundboards du marché qui calculent les effets (volume, vitesse) en temps réel dans la mémoire vive, SidSoundboard utilise une architecture de **Rendu Pré-calculé (Lazy Rendering)**.
+Envoyez vos sons sur Discord et dans votre casque en même temps, sans que
+votre processeur ne travaille pendant la lecture.
 
-### Comment ça marche ?
-1. **Zéro Impact CPU** : Lorsque vous jouez un son, l'application ne fait *aucun* calcul audio. Elle se contente d'ouvrir un flux direct vers la carte son. Votre processeur reste à 0% d'utilisation, évitant ainsi les drops de FPS en jeu.
-2. **Mémoire RAM < 30 Mo** : Les fichiers ne sont pas chargés en mémoire. Ils sont lus en streaming directement depuis le disque via le moteur bas niveau `miniaudio`.
-3. **Moteur FFmpeg Asynchrone** : Lorsque vous modifiez un volume ou une vitesse, l'application utilise FFmpeg en arrière-plan (de manière invisible) pour générer le fichier audio parfait.
-4. **Garbage Collector Intégré** : Pour ne pas polluer votre disque, l'application supprime instantanément les anciens fichiers de cache dès qu'un réglage change, et nettoie automatiquement les fichiers orphelins à chaque démarrage.
+[![Dernière version](https://img.shields.io/github/v/release/zubulmuk92/SidSoundboard?label=t%C3%A9l%C3%A9charger&style=for-the-badge&color=59E1D8)](https://github.com/zubulmuk92/SidSoundboard/releases/latest)
+[![Plateforme](https://img.shields.io/badge/Windows-10%20%7C%2011-0A141B?style=for-the-badge)](https://github.com/zubulmuk92/SidSoundboard/releases/latest)
 
-## 🎛️ Routage Double (Virtual Cable)
-Vous voulez entendre le son doucement dans votre casque, mais l'envoyer très fort sur Discord pour vos amis ?
-- SidSoundboard gère deux cartes sons simultanément (ex: Casque + VB-Cable).
-- Le volume de la sortie secondaire est réglable globalement dans les paramètres.
-- Les deux flux sont streamés en parfaite synchronisation par le moteur C sous-jacent.
+[Site du projet](https://zubulmuk92.github.io/SidSoundboard/) ·
+[Télécharger](https://github.com/zubulmuk92/SidSoundboard/releases/latest) ·
+[Signaler un bug](https://github.com/zubulmuk92/SidSoundboard/issues)
 
-## 🎨 Interface Moderne
-- Navigation par Sidebar latérale (façon Discord/VS Code).
-- Waveform précalculée sur chaque son, cliquable pour naviguer dans la lecture.
-- Fondus d'entrée/sortie et crossfade entre les sons.
-- Page d'édition par son : volume, vitesse/pitch, bass booster, reverb,
-  découpe à la souris sur la waveform, et fondus d'entrée/sortie propres
-  à chaque son.
-- Tous les effets sont rendus une seule fois par FFmpeg et joués à
-  l'identique sur les **deux** sorties (casque et câble virtuel) — ce que
-  vous entendez est exactement ce que vos amis entendent.
-- Édition non destructive : le fichier original est conservé intact, vous
-  pouvez revenir en arrière sur n'importe quel réglage à tout moment.
-- Thème « âge de glace » : bleus de glacier profonds et turquoise de
-  crevasse, conçu avec `PySide6` (Qt). Le rouge du bouton STOP est la seule
-  couleur chaude de l'interface — impossible de le rater en pleine partie.
-- S'adapte automatiquement au mode clair/sombre de Windows.
-- Interface disponible en **français** et en **anglais** (Réglages → Langue).
-  Le changement est immédiat, sans redémarrage.
+</div>
 
-## 🎬 Pads
-La Bibliothèque sert à gérer vos sons ; l'écran **Pads** sert à les jouer. Une
-grille de gros pads, une seule action possible : déclencher. Le pad en
-cours de lecture affiche sa progression.
+---
 
-## 📁 Scènes
-Un jeu, un stream et un appel privé n'appellent pas les mêmes sons. Chaque
-**scène** a sa propre liste et ses propres raccourcis — la même touche F1
-peut servir dans deux contextes. Le sélecteur « Scène active » est en haut
-de la barre latérale, avec le bouton **+ Nouvelle scène** juste en dessous ;
-renommer et supprimer se font dans **Réglages → Scènes**.
+## Téléchargement
 
-## 💾 Où sont mes données ?
-À côté de l'exécutable, s'il peut y écrire (application portable), sinon
-dans `%APPDATA%\SidSoundboard`. L'application retrouve donc sa
-bibliothèque quel que soit le dossier depuis lequel on la lance.
+> ### ⬇️ [Télécharger `SidSoundboard.exe`](https://github.com/zubulmuk92/SidSoundboard/releases/latest/download/SidSoundboard.exe)
+>
+> Un seul fichier, rien à installer. Python, Qt et FFmpeg sont inclus.
 
-## 🔧 Reconstruire l'exécutable
-`bin/` est exclu du dépôt : le binaire FFmpeg pèse 99 Mo. Pour reconstruire
-depuis un clone, placez `ffmpeg.exe` dans `bin/win32/`, puis lancez
-`python -m PyInstaller --noconfirm --clean SidSoundboard.spec`.
-Les licences des composants embarqués sont dans [THIRD-PARTY.md](THIRD-PARTY.md).
+**Prenez toujours la version publiée dans les [Releases](https://github.com/zubulmuk92/SidSoundboard/releases/latest).**
+C'est la seule qui soit compilée, testée, et vérifiable par son empreinte
+SHA-256.
 
-## 📦 Installation & Utilisation
-Le projet est packagé en un seul fichier `.exe` autonome.
-1. Lancez `SidSoundboard.exe` (situé dans le dossier `dist/`).
-2. Installez *VB-Cable* séparément si vous voulez router le son vers un micro virtuel (l'app ne l'installe pas elle-même).
-3. Dans **Réglages**, configurez votre sortie Principale (Casque), activez la Double Sortie et choisissez la sortie Secondaire (VB-Cable) si besoin.
-4. Dans **Bibliothèque**, ajoutez vos sons (MP3, WAV) ou téléchargez-les directement depuis YouTube/YT Music en collant l'URL !
-5. Assignez vos touches de raccourci (macros) et profitez d'un son instantané.
+Le bouton vert *Code → Download ZIP* télécharge l'état courant de la
+branche `main`, qui n'est pas une version publiée : il peut contenir des
+fonctionnalités à moitié terminées, ne pas se lancer, ou demander d'être
+compilé. Ne l'utilisez que si vous comptez contribuer au code.
+
+Au premier lancement, Windows affiche un avertissement SmartScreen
+« éditeur inconnu », parce que l'exécutable n'est pas signé. Cliquez sur
+*Informations complémentaires*, puis *Exécuter quand même*.
+
+---
+
+## Pourquoi celle-ci plutôt qu'une autre
+
+La plupart des soundboards appliquent leurs effets en temps réel, pendant
+que vous jouez. Chaque son déclenché consomme alors du processeur au pire
+moment : en pleine partie.
+
+SidSoundboard fait l'inverse. Dès qu'un réglage change, FFmpeg reconstruit
+le fichier en arrière-plan, une seule fois. Déclencher un son n'ouvre
+ensuite qu'un flux depuis le disque vers la carte son.
+
+| | |
+|---|---|
+| **Pendant la lecture** | aucun calcul audio, aucun échantillon traité |
+| **En mémoire** | les fichiers sont streamés, jamais chargés entièrement |
+| **Sur le disque** | les caches devenus inutiles sont nettoyés au démarrage |
+
+Le corollaire compte autant : puisque le rendu est unique, la sortie casque
+et la sortie câble virtuel jouent **exactement le même fichier**. Ce que
+vous entendez est ce que vos amis entendent.
+
+---
+
+## Fonctionnalités
+
+### Moteur audio
+- Double sortie simultanée : casque **et** micro virtuel, effets identiques
+- Volume de la sortie câble réglable à part, lui aussi pré-calculé
+- Fondus d'entrée et de sortie, fondu enchaîné entre deux sons
+- Arrêt d'urgence global, mode solo
+
+### Éditeur de son
+- Volume jusqu'à 400 %, vitesse et hauteur, bass booster, reverb
+- Découpe à la souris directement sur la forme d'onde
+- Fondus propres à chaque son
+- **Édition non destructive** : le fichier importé n'est jamais modifié,
+  chaque réglage reste réversible
+
+### Organisation
+- **Scènes** : chaque scène a ses sons et ses raccourcis. Un jeu, un stream
+  et un appel privé n'appellent pas les mêmes sons — on bascule d'un clic
+- **Pads** : une grille de grandes cibles pour déclencher en pleine partie,
+  sans risque de cliquer à côté
+- Recherche, filtre par catégorie, réordonnancement par glisser-déposer
+- Les raccourcis en conflit sont signalés au lieu de s'écraser en silence
+
+### Import
+- Fichiers locaux : MP3, WAV, OGG, FLAC, M4A
+- Téléchargement direct depuis YouTube en collant une URL
+- Normalisation automatique du niveau, pour que tous vos sons se valent
+
+### Interface
+- Français et anglais, changement immédiat sans redémarrage
+- Thème clair ou sombre, suivant le réglage de Windows
+
+---
+
+## Premiers pas
+
+1. Lancez `SidSoundboard.exe` depuis un dossier où il peut écrire.
+2. Dans **Réglages**, choisissez votre périphérique principal (votre casque).
+3. Dans **Bibliothèque**, importez un fichier ou collez une URL YouTube.
+4. Cliquez sur la touche affichée sur une carte pour lui assigner un
+   raccourci clavier global.
+
+### Envoyer le son vers Discord
+
+Il faut un câble audio virtuel, que SidSoundboard n'installe pas :
+
+1. Installez [VB-Cable](https://vb-audio.com/Cable/), puis redémarrez Windows.
+2. Dans **Réglages**, activez la double sortie et choisissez `CABLE Input`
+   comme sortie secondaire.
+3. Dans Discord, sélectionnez `CABLE Output` comme périphérique d'entrée.
+
+L'écran **Aide** vérifie ces trois points et indique lequel manque.
+
+---
+
+## Où sont rangées mes données
+
+À côté de l'exécutable, s'il peut y écrire — l'application est portable,
+déplacer le dossier suffit à la déplacer.
+
+Si l'emplacement est protégé en écriture (`Program Files`, par exemple),
+tout bascule vers `%APPDATA%\SidSoundboard`.
+
+```
+SidSoundboard.exe
+config.json          réglages, scènes, sons
+downloads/           fichiers audio et rendus
+```
+
+---
+
+## Compiler depuis les sources
+
+Pour contribuer au code. **Si vous voulez seulement utiliser
+l'application, prenez la [release](https://github.com/zubulmuk92/SidSoundboard/releases/latest).**
+
+```bash
+git clone https://github.com/zubulmuk92/SidSoundboard.git
+cd SidSoundboard
+pip install -r requirements.txt
+```
+
+FFmpeg n'est pas dans le dépôt : le binaire pèse 99 Mo. Récupérez un build
+Windows sur [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) et placez-le
+dans `bin/win32/ffmpeg.exe`.
+
+```bash
+python main.py
+python -m unittest discover -s tests -t .
+python -m PyInstaller --noconfirm --clean SidSoundboard.spec
+```
+
+Développé avec Python 3.14 et PySide6.
+
+---
+
+## Composants tiers
+
+SidSoundboard embarque FFmpeg (GPLv3), PySide6 (LGPLv3), miniaudio,
+yt-dlp, pystray et Pillow. Licences et accès aux sources dans
+[THIRD-PARTY.md](THIRD-PARTY.md).
+
+---
+
+## Auteur
+
+Créé et maintenu par **[zubulmuk92](https://github.com/zubulmuk92)**.
+
+Bugs et suggestions sont les bienvenus dans les
+[issues](https://github.com/zubulmuk92/SidSoundboard/issues).
