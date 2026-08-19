@@ -94,6 +94,7 @@ def run_worker(url, output_dir):
             "no_warnings": True,
             "ffmpeg_location": ffmpeg_loc,
             "progress_hooks": [yt_progress_hook],
+            "extractor_args": {"youtube": {"player_client": ["android"]}},
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
