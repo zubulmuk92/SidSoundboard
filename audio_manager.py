@@ -10,6 +10,7 @@ class AudioManager:
         self.focused_info = None
         self.fade_in_ms = 0
         self.fade_out_ms = 0
+        self.playback_queue = []
 
     def set_fade_durations(self, fade_in_ms, fade_out_ms):
         self.fade_in_ms = fade_in_ms
@@ -132,6 +133,11 @@ class AudioManager:
             is_running = False
         else:
             if not fi["device"].running:
+                if self.playback_queue:
+                    self.play_next()
+                    # We just started a new sound, get_focused_progress will pick it up on the next call.
+                    # Or we could fetch it recursively right now.
+                    return self.get_focused_progress()
                 return None
             current_t = (time.time() - fi["start_sys_time"]) + fi["seek_offset"]
             is_running = True
@@ -227,28 +233,32 @@ class AudioManager:
                     self.focused_info = fi
             return
 
-        if fi and self.fade_out_ms > 0 and self.active_playbacks:
-            self._crossfade_to(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, sound_id)
-        else:
-            self.stop_all()
-            self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id)
+        if fi and (fi.get("is_paused") or (fi.get("device") and getattr(fi["device"], "running", False))):
+            self.playback_queue.append({
+                "filepath_primary": filepath_primary,
+                "filepath_secondary": filepath_secondary,
+                "name": name,
+                "volume": volume,
+                "primary_device_name": primary_device_name,
+                "secondary_device_name": secondary_device_name,
+                "dual_enabled": dual_enabled,
+                "seek_offset": 0.0,
+                "sound_id": sound_id
+            })
+            return
 
-    def _crossfade_to(self, filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, sound_id):
-        outgoing = list(self.active_playbacks)
-        for entry in outgoing:
-            entry[2].stop_requested = True
-
-        self.active_playbacks = []
+        self.stop_all()
         self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id)
 
-        def close_outgoing():
-            for entry in outgoing:
-                self._close_entry(entry)
-
-        delay = (self.fade_out_ms / 1000.0) + 0.1
-        timer = threading.Timer(delay, close_outgoing)
-        timer.daemon = True
-        timer.start()
+    def play_next(self):
+        if not self.playback_queue:
+            self.stop_all()
+            return False
+        
+        next_sound = self.playback_queue.pop(0)
+        self.stop_all()
+        self.play_sound(**next_sound)
+        return True
 
 
 class FadeState:

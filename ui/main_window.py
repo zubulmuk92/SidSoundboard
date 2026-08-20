@@ -168,6 +168,7 @@ class AppGUI(QMainWindow):
 
         self.player_bar = PlayerBar()
         self.player_bar.seek_requested.connect(self._on_seek)
+        self.player_bar.skip_requested.connect(self._on_skip)
         content_layout.addWidget(self.player_bar)
         self._refresh_profile_combo()
         self._switch_tab(self._active_tab)
@@ -309,13 +310,16 @@ class AppGUI(QMainWindow):
         if fi and fi.get("duration"):
             self.audio_manager.seek_focused(ratio * fi["duration"])
 
+    def _on_skip(self):
+        self.audio_manager.play_next()
+
     def _update_timeline(self):
         prog = self.audio_manager.get_focused_progress()
         if not prog:
             self._release_card(self._last_timeline_sound_id)
             self._last_timeline_sound_id = None
             self.scene_view.set_playing(None, 0.0)
-            self.player_bar.update_progress("", 0, 0, None)
+            self.player_bar.update_progress("", 0, 0, None, False, 0)
             return
 
         sound_id = prog.get("sound_id")
@@ -333,13 +337,11 @@ class AppGUI(QMainWindow):
             self._last_timeline_sound_id = sound_id
             if card:
                 peaks = card.waveform.peaks
-            # else: sound not currently rendered (filtered/scrolled out of view) -
-            # leave peaks as None and let the player bar keep its last-known peaks.
 
         ratio = prog["current"] / prog["duration"] if prog["duration"] > 0 else 0.0
         self.scene_view.set_playing(sound_id, ratio)
         self.player_bar.update_progress(
-            prog["name"], prog["current"], prog["duration"], peaks, prog["is_paused"]
+            prog["name"], prog["current"], prog["duration"], peaks, prog["is_paused"], len(self.audio_manager.playback_queue)
         )
 
     def _release_card(self, sound_id):
