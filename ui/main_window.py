@@ -315,6 +315,10 @@ class AppGUI(QMainWindow):
     def _on_skip(self):
         self.audio_manager.play_next()
 
+    @Slot(str)
+    def _on_play_mode_changed(self, mode):
+        self.audio_manager.play_mode = mode
+
     def _update_timeline(self):
         prog = self.audio_manager.get_focused_progress()
         if not prog:
