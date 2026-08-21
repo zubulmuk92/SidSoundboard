@@ -169,6 +169,7 @@ class AppGUI(QMainWindow):
         self.player_bar = PlayerBar()
         self.player_bar.seek_requested.connect(self._on_seek)
         self.player_bar.skip_requested.connect(self._on_skip)
+        self.player_bar.mode_changed.connect(self._on_play_mode_changed)
         content_layout.addWidget(self.player_bar)
         self._refresh_profile_combo()
         self._switch_tab(self._active_tab)
@@ -303,6 +304,7 @@ class AppGUI(QMainWindow):
             secondary_device_name=self.config.get("secondary_output"),
             dual_enabled=self.config.get("dual_output_enabled", False),
             sound_id=sound.get("id"),
+            loop=sound.get("loop", False),
         )
 
     def _on_seek(self, ratio):

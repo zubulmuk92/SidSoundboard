@@ -97,7 +97,8 @@ class HotkeyManager:
             primary_device_name=self.config.get("primary_output"),
             secondary_device_name=self.config.get("secondary_output"),
             dual_enabled=self.config.get("dual_output_enabled", False),
-            sound_id=sound.get("id")
+            sound_id=sound.get("id"),
+            loop=sound.get("loop", False)
         )
 
     def _panic_callback(self, event):

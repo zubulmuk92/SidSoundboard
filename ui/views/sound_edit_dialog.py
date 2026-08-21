@@ -3,7 +3,7 @@ import threading
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
+    QCheckBox, QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
     QMessageBox, QPushButton, QSlider, QVBoxLayout, QWidget
 )
 
@@ -95,6 +95,11 @@ class SoundEditDialog(QDialog):
             sliders, tr("editor.fade_out"), 0, 5000,
             self.sound.get("fade_out_ms", self.config.get("fade_out_ms", 150)), " ms",
         )
+        
+        self.cb_loop = QCheckBox("Jouer en boucle")
+        self.cb_loop.setChecked(bool(self.sound.get("loop", False)))
+        sliders.addRow(self.cb_loop)
+        
         layout.addLayout(sliders)
 
         buttons = QHBoxLayout()
@@ -158,6 +163,7 @@ class SoundEditDialog(QDialog):
             "fade_out_ms": self.sl_fade_out.value(),
             "trim_start_sec": round(start, 3),
             "trim_end_sec": round(end, 3) if end < self.duration else None,
+            "loop": self.cb_loop.isChecked(),
         }
 
     # ---------- rendering ----------

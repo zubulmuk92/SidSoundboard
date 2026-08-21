@@ -1,5 +1,5 @@
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
 from i18n import tr
 from ui.widgets.waveform import WaveformWidget
@@ -8,6 +8,7 @@ from ui.widgets.waveform import WaveformWidget
 class PlayerBar(QFrame):
     seek_requested = Signal(float)
     skip_requested = Signal()
+    mode_changed = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,10 +37,25 @@ class PlayerBar(QFrame):
         layout.addWidget(self.lbl_queue)
 
         from PySide6.QtWidgets import QPushButton
+        
+        self.btn_mode = QPushButton("🔉 Superposition")
+        self.btn_mode.setToolTip("Changer le mode de lecture (Superposition ou File d'attente)")
+        self.btn_mode.setCheckable(True)
+        self.btn_mode.clicked.connect(self._toggle_mode)
+        layout.addWidget(self.btn_mode)
+
         self.btn_skip = QPushButton("Passer")
         self.btn_skip.clicked.connect(self.skip_requested)
         self.btn_skip.hide()
         layout.addWidget(self.btn_skip)
+
+    def _toggle_mode(self, checked):
+        if checked:
+            self.btn_mode.setText("🔁 File d'attente")
+            self.mode_changed.emit("queue")
+        else:
+            self.btn_mode.setText("🔉 Superposition")
+            self.mode_changed.emit("overlay")
 
     def update_progress(self, name, current, duration, peaks, is_paused=False, queue_count=0):
         if not name:
@@ -60,6 +76,7 @@ class PlayerBar(QFrame):
         self.lbl_time_tot.setText(self._format_time(duration))
         if peaks is not None:
             self.waveform.set_peaks(peaks)
+        self.waveform.duration = duration
         self.waveform.set_progress(current / duration if duration > 0 else 0.0)
 
     @staticmethod

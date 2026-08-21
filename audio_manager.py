@@ -53,7 +53,7 @@ class AudioManager:
         except Exception:
             return None, None
 
-    def play_sound(self, filepath_primary, filepath_secondary, name, volume=1.0, primary_device_name=None, secondary_device_name=None, dual_enabled=False, seek_offset=0.0, sound_id=None):
+    def play_sound(self, filepath_primary, filepath_secondary, name, volume=1.0, primary_device_name=None, secondary_device_name=None, dual_enabled=False, seek_offset=0.0, sound_id=None, loop=False):
         if not filepath_primary:
             return
 
@@ -120,7 +120,8 @@ class AudioManager:
             secondary_device_name=fi["secondary_device_name"],
             dual_enabled=fi["dual_enabled"],
             seek_offset=time_seconds,
-            sound_id=fi["sound_id"]
+            sound_id=fi["sound_id"],
+            loop=fi["loop"]
         )
 
     def get_focused_progress(self):
@@ -133,10 +134,11 @@ class AudioManager:
             is_running = False
         else:
             if not fi["device"].running:
+                if fi.get("loop", False):
+                    self.seek_focused(0.0)
+                    return self.get_focused_progress()
                 if self.playback_queue:
                     self.play_next()
-                    # We just started a new sound, get_focused_progress will pick it up on the next call.
-                    # Or we could fetch it recursively right now.
                     return self.get_focused_progress()
                 return None
             current_t = (time.time() - fi["start_sys_time"]) + fi["seek_offset"]
@@ -211,7 +213,7 @@ class AudioManager:
             stopped = True
         return stopped
 
-    def toggle_play_pause(self, filepath_primary, filepath_secondary, name, volume=1.0, primary_device_name=None, secondary_device_name=None, dual_enabled=False, sound_id=None):
+    def toggle_play_pause(self, filepath_primary, filepath_secondary, name, volume=1.0, primary_device_name=None, secondary_device_name=None, dual_enabled=False, sound_id=None, loop=False):
         if not filepath_primary:
             return
         fi = self.focused_info
@@ -220,7 +222,7 @@ class AudioManager:
             if fi.get("is_paused"):
                 seek = fi.get("paused_at", 0.0)
                 self.stop_all()
-                self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, seek, sound_id)
+                self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, seek, sound_id, loop)
             else:
                 prog = self.get_focused_progress()
                 if prog:
@@ -234,21 +236,27 @@ class AudioManager:
             return
 
         if fi and (fi.get("is_paused") or (fi.get("device") and getattr(fi["device"], "running", False))):
-            self.playback_queue.append({
-                "filepath_primary": filepath_primary,
-                "filepath_secondary": filepath_secondary,
-                "name": name,
-                "volume": volume,
-                "primary_device_name": primary_device_name,
-                "secondary_device_name": secondary_device_name,
-                "dual_enabled": dual_enabled,
-                "seek_offset": 0.0,
-                "sound_id": sound_id
-            })
-            return
+            if self.play_mode == "queue":
+                self.playback_queue.append({
+                    "filepath_primary": filepath_primary,
+                    "filepath_secondary": filepath_secondary,
+                    "name": name,
+                    "volume": volume,
+                    "primary_device_name": primary_device_name,
+                    "secondary_device_name": secondary_device_name,
+                    "dual_enabled": dual_enabled,
+                    "seek_offset": 0.0,
+                    "sound_id": sound_id,
+                    "loop": loop
+                })
+                return
+            elif self.play_mode == "overlay":
+                # Do not stop_all, just play the new sound. It becomes the focused one.
+                self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id, loop)
+                return
 
         self.stop_all()
-        self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id)
+        self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id, loop)
 
     def play_next(self):
         if not self.playback_queue:

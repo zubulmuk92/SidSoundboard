@@ -34,6 +34,7 @@ SOUND_EFFECT_DEFAULTS = {
     "reverb": 0,
     "trim_start_sec": 0.0,
     "trim_end_sec": None,
+    "loop": False,
     "cached_effects_file": None,
     "cached_secondary_file": None,
     "cached_secondary_volume": 100,
