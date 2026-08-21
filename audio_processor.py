@@ -112,6 +112,9 @@ def build_effects_filter_chain(sound, master_volume=100):
         decay = round(0.3 + reverb * 0.004, 3)
         filters.append(f"aecho=0.8:0.9:{delay}:{decay}")
 
+    if sound.get("reverse", False):
+        filters.append("areverse")
+
     # The master volume folds in here rather than being applied at
     # playback: everything is pre-rendered, and a live gain would cost CPU
     # per sample, which the whole design exists to avoid.

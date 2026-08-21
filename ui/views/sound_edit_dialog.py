@@ -96,9 +96,15 @@ class SoundEditDialog(QDialog):
             self.sound.get("fade_out_ms", self.config.get("fade_out_ms", 150)), " ms",
         )
         
+        from PySide6.QtWidgets import QHBoxLayout
+        cb_layout = QHBoxLayout()
         self.cb_loop = QCheckBox("Jouer en boucle")
         self.cb_loop.setChecked(bool(self.sound.get("loop", False)))
-        sliders.addRow(self.cb_loop)
+        self.cb_reverse = QCheckBox("Inverser (Reverse)")
+        self.cb_reverse.setChecked(bool(self.sound.get("reverse", False)))
+        cb_layout.addWidget(self.cb_loop)
+        cb_layout.addWidget(self.cb_reverse)
+        sliders.addRow(cb_layout)
         
         layout.addLayout(sliders)
 
@@ -164,6 +170,7 @@ class SoundEditDialog(QDialog):
             "trim_start_sec": round(start, 3),
             "trim_end_sec": round(end, 3) if end < self.duration else None,
             "loop": self.cb_loop.isChecked(),
+            "reverse": self.cb_reverse.isChecked(),
         }
 
     # ---------- rendering ----------
