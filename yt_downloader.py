@@ -74,12 +74,11 @@ def run_worker(url, output_dir):
 
     def yt_progress_hook(d):
         if d["status"] == "downloading":
-            percent_str = d.get("_percent_str", "0%").strip()
-            percent_str = re.sub(r"\x1b[^m]*m", "", percent_str).replace("%", "").strip()
-            try:
-                print(f"PROGRESS {int(float(percent_str))}", flush=True)
-            except ValueError:
-                pass
+            downloaded = d.get("downloaded_bytes", 0)
+            total = d.get("total_bytes") or d.get("total_bytes_estimate", 0)
+            if total > 0:
+                pct = int((downloaded / total) * 100)
+                print(f"PROGRESS {pct}", flush=True)
 
     try:
         if hasattr(sys, "_MEIPASS"):
@@ -92,6 +91,7 @@ def run_worker(url, output_dir):
             "outtmpl": os.path.join(output_dir, "%(title)s.%(ext)s"),
             "quiet": True,
             "no_warnings": True,
+            "noprogress": True,
             "ffmpeg_location": ffmpeg_loc,
             "progress_hooks": [yt_progress_hook],
             "extractor_args": {"youtube": {"player_client": ["android"]}},
