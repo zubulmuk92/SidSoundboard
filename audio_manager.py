@@ -105,11 +105,18 @@ class AudioManager:
         if not self.focused_info:
             return
             
-        # Sauvegarder la référence AVANT de faire stop_all
         fi = self.focused_info
         
-        # Stop everything playing right now to restart from seek position
-        self.stop_all()
+        # Stop ONLY the currently focused sound, not everything!
+        # Find the playbacks for this sound_id and close them
+        remaining = []
+        for entry in self.active_playbacks:
+            # entry: (device, stream, fade_state, sound_id)
+            if entry[3] == fi.get("sound_id") and entry[0] == fi.get("device"):
+                self._close_entry(entry)
+            else:
+                remaining.append(entry)
+        self.active_playbacks = remaining
         
         # Re-play with new offset
         self.play_sound(
@@ -121,7 +128,7 @@ class AudioManager:
             dual_enabled=fi["dual_enabled"],
             seek_offset=time_seconds,
             sound_id=fi["sound_id"],
-            loop=fi["loop"]
+            loop=fi.get("loop", False)
         )
 
     def get_focused_progress(self):
@@ -259,6 +266,12 @@ class AudioManager:
         self.play_sound(filepath_primary, filepath_secondary, name, volume, primary_device_name, secondary_device_name, dual_enabled, 0.0, sound_id, loop)
 
     def play_next(self):
+        if self.play_mode == "overlay":
+            # Just stop the focused sound
+            if self.focused_info:
+                self.stop_sound(self.focused_info.get("sound_id"))
+            return True
+            
         if not self.playback_queue:
             self.stop_all()
             return False
