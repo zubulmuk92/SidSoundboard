@@ -11,6 +11,7 @@ class AudioManager:
         self.fade_in_ms = 0
         self.fade_out_ms = 0
         self.playback_queue = []
+        self.play_mode = "overlay"  # Default mode
 
     def set_fade_durations(self, fade_in_ms, fade_out_ms):
         self.fade_in_ms = fade_in_ms
@@ -91,6 +92,8 @@ class AudioManager:
                     "dual_enabled": dual_enabled,
                     "device": dev1,
                     "fade_state": fade_state1,
+                    "loop": loop,
+                    "is_paused": False,
                 }
 
         except Exception as e:
